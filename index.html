@@ -18,6 +18,7 @@
       .link {
         fill: none;
         stroke: #ccc;
+        stroke-width: 2px;
       }
     </style>
   </head>
@@ -27,13 +28,19 @@
       d3.json("dependencies.json")
         .then(function (data) {
           const width = 960;
-          const height = 500;
+          const height = 600;
 
           const svg = d3
             .select("body")
             .append("svg")
             .attr("width", width)
-            .attr("height", height);
+            .attr("height", height)
+            .call(
+              d3.zoom().on("zoom", function (event) {
+                svg.attr("transform", event.transform);
+              })
+            )
+            .append("g");
 
           const simulation = d3
             .forceSimulation(data.nodes)
@@ -54,6 +61,7 @@
             .data(data.links)
             .enter()
             .append("line")
+            .attr("class", "link")
             .attr("stroke-width", (d) => Math.sqrt(d.count));
 
           const node = svg
@@ -62,7 +70,15 @@
             .selectAll("g")
             .data(data.nodes)
             .enter()
-            .append("g");
+            .append("g")
+            .attr("class", "node")
+            .call(
+              d3
+                .drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended)
+            );
 
           node.append("circle").attr("r", 10).attr("fill", "steelblue");
 
@@ -83,6 +99,23 @@
           });
 
           node.append("title").text((d) => d.id + "\nCount: " + d.count);
+
+          function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+          }
+
+          function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+          }
+
+          function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+          }
         })
         .catch(function (error) {
           console.error("Error loading the JSON file:", error);
