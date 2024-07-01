@@ -18,7 +18,7 @@ const headers = {
 
 const options = {
   hostname: GITHUB_API_URL,
-  path: `/orgs/${ORG_NAME}/repos?per_page=2`, // Limit to 2 repositories
+  path: `/orgs/${ORG_NAME}/repos?per_page=10`, // Limit to 10 repositories
   method: "GET",
   headers: headers,
 };
@@ -75,7 +75,7 @@ const req = https.request(options, (res) => {
       }
 
       console.log("Dependency Count:", dependencyCount);
-      saveDependencies(createGraphData(dependencyCount));
+      saveDependencies(createGraphData(repoDependencies, dependencyCount));
     } else {
       console.log("Error:", JSON.parse(data));
     }
@@ -138,9 +138,15 @@ function parseDependencies(fileName, fileContent) {
   return dependencies;
 }
 
-function createGraphData(dependencyCount) {
+function createGraphData(repoDependencies, dependencyCount) {
   const nodes = [];
   const links = [];
+
+  const allRepos = Object.keys(repoDependencies);
+
+  allRepos.forEach((repo) => {
+    nodes.push({ id: repo });
+  });
 
   Object.keys(dependencyCount).forEach((dep) => {
     nodes.push({ id: dep, count: dependencyCount[dep].count });
