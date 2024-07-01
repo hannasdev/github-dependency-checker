@@ -53,7 +53,7 @@
                 .id((d) => d.id)
                 .distance(200)
             )
-            .force("charge", d3.forceManyBody().strength(-500))
+            .force("charge", d3.forceManyBody().strength(-300))
             .force("center", d3.forceCenter(width / 2, height / 2));
 
           const link = svg
@@ -84,7 +84,7 @@
 
           node
             .append("circle")
-            .attr("r", 10)
+            .attr("r", (d) => Math.sqrt(d.count) * 5 || 10) // Adjust the multiplier for appropriate scaling
             .attr("fill", (d) => color(d.depth));
 
           node
@@ -103,7 +103,7 @@
             node.attr("transform", (d) => `translate(${d.x},${d.y})`);
           });
 
-          node.append("title").text((d) => d.id + "\nCount: " + (d.count || 1));
+          node.append("title").text((d) => `${d.id}\nCount: ${d.count || 1}`);
 
           function dragstarted(event, d) {
             if (!event.active) simulation.alphaTarget(0.3).restart();
