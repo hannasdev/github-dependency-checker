@@ -5,6 +5,7 @@ const https = require("https");
 const GITHUB_API_URL = "api.github.com";
 const ORG_NAME = process.env.ORG_NAME;
 const TOKEN = process.env.TOKEN;
+const LIMIT = 200;
 
 console.log("ORG_NAME:", ORG_NAME);
 console.log("TOKEN:", TOKEN ? "Loaded" : "Not Loaded");
@@ -18,7 +19,7 @@ const headers = {
 
 const options = {
   hostname: GITHUB_API_URL,
-  path: `/orgs/${ORG_NAME}/repos?per_page=10`, // Limit to 10 repositories
+  path: `/orgs/${ORG_NAME}/repos?per_page=${LIMIT}`, // Limit to 10 repositories
   method: "GET",
   headers: headers,
 };
