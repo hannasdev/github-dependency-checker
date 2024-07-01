@@ -42,6 +42,8 @@
             )
             .append("g");
 
+          const color = d3.scaleOrdinal(d3.schemeCategory10);
+
           const simulation = d3
             .forceSimulation(data.nodes)
             .force(
@@ -80,7 +82,10 @@
                 .on("end", dragended)
             );
 
-          node.append("circle").attr("r", 10).attr("fill", "steelblue");
+          node
+            .append("circle")
+            .attr("r", 10)
+            .attr("fill", (d) => color(d.depth));
 
           node
             .append("text")
@@ -98,7 +103,7 @@
             node.attr("transform", (d) => `translate(${d.x},${d.y})`);
           });
 
-          node.append("title").text((d) => d.id + "\nCount: " + d.count);
+          node.append("title").text((d) => d.id + "\nCount: " + (d.count || 1));
 
           function dragstarted(event, d) {
             if (!event.active) simulation.alphaTarget(0.3).restart();

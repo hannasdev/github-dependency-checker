@@ -144,18 +144,29 @@ function createGraphData(repoDependencies, dependencyCount) {
 
   const allRepos = Object.keys(repoDependencies);
 
+  const nodeMap = {};
+
   allRepos.forEach((repo) => {
-    nodes.push({ id: repo });
+    const node = { id: repo, depth: 0 };
+    nodes.push(node);
+    nodeMap[repo] = node;
   });
 
   Object.keys(dependencyCount).forEach((dep) => {
-    nodes.push({ id: dep, count: dependencyCount[dep].count });
+    if (!nodeMap[dep]) {
+      const node = { id: dep, count: dependencyCount[dep].count };
+      nodes.push(node);
+      nodeMap[dep] = node;
+    }
     dependencyCount[dep].sources.forEach((source) => {
       links.push({
         source: source,
         target: dep,
         count: dependencyCount[dep].count,
       });
+      if (nodeMap[source].depth + 1 > nodeMap[dep].depth) {
+        nodeMap[dep].depth = nodeMap[source].depth + 1;
+      }
     });
   });
 
