@@ -69,7 +69,7 @@ const req = https.request(options, (res) => {
       }
 
       console.log("Internal Dependencies:", internalDependencies);
-      saveDependencies(internalDependencies);
+      saveDependencies(createHierarchy(internalDependencies));
     } else {
       console.log("Error:", JSON.parse(data));
     }
@@ -130,6 +130,26 @@ function parseDependencies(fileName, fileContent) {
   }
   // Add parsing logic for other file types here
   return dependencies;
+}
+
+function createHierarchy(dependencies) {
+  const root = { name: ORG_NAME, children: [] };
+  const nodes = {};
+
+  for (const [repo, deps] of Object.entries(dependencies)) {
+    if (!nodes[repo]) {
+      nodes[repo] = { name: repo, children: [] };
+    }
+    deps.forEach((dep) => {
+      if (!nodes[dep]) {
+        nodes[dep] = { name: dep, children: [] };
+      }
+      nodes[repo].children.push(nodes[dep]);
+    });
+  }
+
+  root.children = Object.values(nodes);
+  return root;
 }
 
 function saveDependencies(dependencies) {
