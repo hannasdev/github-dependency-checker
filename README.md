@@ -1,6 +1,6 @@
 # Github Dependency Checker
 
-This app searches through a github organisation and all its repositories, to build a graph dependency tree. This tree is then rendered, in order to visualise the dependencies between repositories inside the organisation.
+This app searches through a GitHub organization and all its repositories to build a dependency tree graph. The graph is then rendered to visualize the dependencies between repositories within the organization.
 
 ## Prerequisites
 
