@@ -44,6 +44,11 @@
 
           const color = d3.scaleOrdinal(d3.schemeCategory10);
 
+          // Find nodes with 0 outgoing links
+          const nodesWithNoDependencies = data.nodes.filter((node) => {
+            return !data.links.some((link) => link.source === node.id);
+          });
+
           const simulation = d3
             .forceSimulation(data.nodes)
             .force(
@@ -52,9 +57,19 @@
                 .forceLink(data.links)
                 .id((d) => d.id)
                 .distance(200)
+                .strength(0.1) // Decrease link force strength
             )
-            .force("charge", d3.forceManyBody().strength(-300))
-            .force("center", d3.forceCenter(width / 2, height / 2));
+            .force(
+              "charge",
+              d3.forceManyBody().strength((d) => {
+                return d.count === 0 ? -500 : -200; // Adjust strength based on count
+              })
+            )
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force(
+              "collision",
+              d3.forceCollide().radius((d) => Math.sqrt(d.count) * 10)
+            );
 
           const link = svg
             .append("g")
