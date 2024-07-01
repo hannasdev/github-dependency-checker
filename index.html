@@ -20,17 +20,33 @@
         stroke: #ccc;
         stroke-width: 2px;
       }
+
+      /* Style for the search box */
+      #searchBox {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+      }
     </style>
   </head>
   <body>
+    <!-- Search box for node name -->
+    <div id="searchBox">
+      <input type="text" id="nodeNameInput" placeholder="Enter node name" />
+      <button onclick="centerOnNode()">Search</button>
+    </div>
+
     <script>
+      let svg; // Define svg globally
+      let simulation; // Define simulation globally
+
       // Load the dependencies JSON file from the server
       d3.json("dependencies.json")
         .then(function (data) {
           const width = 960;
           const height = 600;
 
-          const svg = d3
+          svg = d3
             .select("body")
             .append("svg")
             .attr("width", width)
@@ -49,7 +65,7 @@
             return !data.links.some((link) => link.source === node.id);
           });
 
-          const simulation = d3
+          simulation = d3
             .forceSimulation(data.nodes)
             .force(
               "link",
@@ -57,12 +73,12 @@
                 .forceLink(data.links)
                 .id((d) => d.id)
                 .distance(200)
-                .strength(0.1) // Decrease link force strength
+                .strength(0.1)
             )
             .force(
               "charge",
               d3.forceManyBody().strength((d) => {
-                return d.count === 0 ? -500 : -200; // Adjust strength based on count
+                return d.count === 0 ? -500 : -200;
               })
             )
             .force("center", d3.forceCenter(width / 2, height / 2))
@@ -136,6 +152,30 @@
             d.fx = null;
             d.fy = null;
           }
+
+          // Function to center on a specific node based on its name
+          window.centerOnNode = function () {
+            const nodeName = document
+              .getElementById("nodeNameInput")
+              .value.trim()
+              .toLowerCase();
+            const selectedNode = data.nodes.find(
+              (node) => node.id.toLowerCase() === nodeName
+            );
+            if (selectedNode) {
+              const transform = d3.zoomIdentity
+                .translate(width / 2, height / 2)
+                .scale(1)
+                .translate(-selectedNode.x, -selectedNode.y);
+
+              svg
+                .transition()
+                .duration(750)
+                .call(d3.zoom().transform, transform);
+            } else {
+              alert("Node not found!");
+            }
+          };
         })
         .catch(function (error) {
           console.error("Error loading the JSON file:", error);
