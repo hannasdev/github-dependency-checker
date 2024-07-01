@@ -18,7 +18,6 @@
       .link {
         fill: none;
         stroke: #ccc;
-        stroke-width: 2px;
       }
     </style>
   </head>
@@ -36,67 +35,54 @@
             .attr("width", width)
             .attr("height", height);
 
-          const g = svg.append("g").attr("transform", "translate(40,0)");
+          const simulation = d3
+            .forceSimulation(data.nodes)
+            .force(
+              "link",
+              d3
+                .forceLink(data.links)
+                .id((d) => d.id)
+                .distance(200)
+            )
+            .force("charge", d3.forceManyBody().strength(-500))
+            .force("center", d3.forceCenter(width / 2, height / 2));
 
-          const tree = d3.tree().size([height, width - 160]);
-
-          const root = d3.hierarchy(data);
-
-          tree(root);
-
-          const link = g
-            .selectAll(".link")
-            .data(root.descendants().slice(1))
-            .enter()
-            .append("path")
-            .attr("class", "link")
-            .attr("d", function (d) {
-              return (
-                "M" +
-                d.y +
-                "," +
-                d.x +
-                "C" +
-                (d.parent.y + 100) +
-                "," +
-                d.x +
-                " " +
-                (d.parent.y + 100) +
-                "," +
-                d.parent.x +
-                " " +
-                d.parent.y +
-                "," +
-                d.parent.x
-              );
-            });
-
-          const node = g
-            .selectAll(".node")
-            .data(root.descendants())
-            .enter()
+          const link = svg
             .append("g")
-            .attr("class", function (d) {
-              return "node" + (d.children ? " node--internal" : " node--leaf");
-            })
-            .attr("transform", function (d) {
-              return "translate(" + d.y + "," + d.x + ")";
-            });
+            .attr("class", "links")
+            .selectAll("line")
+            .data(data.links)
+            .enter()
+            .append("line")
+            .attr("stroke-width", (d) => Math.sqrt(d.count));
 
-          node.append("circle").attr("r", 10);
+          const node = svg
+            .append("g")
+            .attr("class", "nodes")
+            .selectAll("g")
+            .data(data.nodes)
+            .enter()
+            .append("g");
+
+          node.append("circle").attr("r", 10).attr("fill", "steelblue");
 
           node
             .append("text")
-            .attr("dy", 3)
-            .attr("x", function (d) {
-              return d.children ? -12 : 12;
-            })
-            .style("text-anchor", function (d) {
-              return d.children ? "end" : "start";
-            })
-            .text(function (d) {
-              return d.data.name;
-            });
+            .attr("x", 12)
+            .attr("dy", ".35em")
+            .text((d) => d.id);
+
+          simulation.on("tick", () => {
+            link
+              .attr("x1", (d) => d.source.x)
+              .attr("y1", (d) => d.source.y)
+              .attr("x2", (d) => d.target.x)
+              .attr("y2", (d) => d.target.y);
+
+            node.attr("transform", (d) => `translate(${d.x},${d.y})`);
+          });
+
+          node.append("title").text((d) => d.id + "\nCount: " + d.count);
         })
         .catch(function (error) {
           console.error("Error loading the JSON file:", error);
