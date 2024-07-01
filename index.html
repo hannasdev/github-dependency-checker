@@ -24,81 +24,83 @@
   </head>
   <body>
     <script>
-      // Load the dependencies JSON file
-      d3.json("dependencies.json").then(function (data) {
-        const width = 960;
-        const height = 500;
+      // Load the dependencies JSON file from the server
+      d3.json("dependencies.json")
+        .then(function (data) {
+          const width = 960;
+          const height = 500;
 
-        const svg = d3
-          .select("body")
-          .append("svg")
-          .attr("width", width)
-          .attr("height", height);
+          const svg = d3
+            .select("body")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
 
-        const g = svg.append("g").attr("transform", "translate(40,0)");
+          const g = svg.append("g").attr("transform", "translate(40,0)");
 
-        const tree = d3.tree().size([height, width - 160]);
+          const tree = d3.tree().size([height, width - 160]);
 
-        const root = d3.hierarchy(data, function (d) {
-          return d.children;
+          const root = d3.hierarchy(data);
+
+          tree(root);
+
+          const link = g
+            .selectAll(".link")
+            .data(root.descendants().slice(1))
+            .enter()
+            .append("path")
+            .attr("class", "link")
+            .attr("d", function (d) {
+              return (
+                "M" +
+                d.y +
+                "," +
+                d.x +
+                "C" +
+                (d.parent.y + 100) +
+                "," +
+                d.x +
+                " " +
+                (d.parent.y + 100) +
+                "," +
+                d.parent.x +
+                " " +
+                d.parent.y +
+                "," +
+                d.parent.x
+              );
+            });
+
+          const node = g
+            .selectAll(".node")
+            .data(root.descendants())
+            .enter()
+            .append("g")
+            .attr("class", function (d) {
+              return "node" + (d.children ? " node--internal" : " node--leaf");
+            })
+            .attr("transform", function (d) {
+              return "translate(" + d.y + "," + d.x + ")";
+            });
+
+          node.append("circle").attr("r", 10);
+
+          node
+            .append("text")
+            .attr("dy", 3)
+            .attr("x", function (d) {
+              return d.children ? -12 : 12;
+            })
+            .style("text-anchor", function (d) {
+              return d.children ? "end" : "start";
+            })
+            .text(function (d) {
+              return d.data.name;
+            });
+        })
+        .catch(function (error) {
+          console.error("Error loading the JSON file:", error);
         });
-
-        tree(root);
-
-        const link = g
-          .selectAll(".link")
-          .data(root.descendants().slice(1))
-          .enter()
-          .append("path")
-          .attr("class", "link")
-          .attr("d", function (d) {
-            return (
-              "M" +
-              d.y +
-              "," +
-              d.x +
-              "C" +
-              (d.parent.y + 100) +
-              "," +
-              d.x +
-              " " +
-              (d.parent.y + 100) +
-              "," +
-              d.parent.x +
-              " " +
-              d.parent.y +
-              "," +
-              d.parent.x
-            );
-          });
-
-        const node = g
-          .selectAll(".node")
-          .data(root.descendants())
-          .enter()
-          .append("g")
-          .attr("class", function (d) {
-            return "node" + (d.children ? " node--internal" : " node--leaf");
-          })
-          .attr("transform", function (d) {
-            return "translate(" + d.y + "," + d.x + ")";
-          });
-
-        node.append("circle").attr("r", 10);
-
-        node
-          .append("text")
-          .attr("dy", 3)
-          .attr("x", function (d) {
-            return d.children ? -12 : 12;
-          })
-          .style("text-anchor", function (d) {
-            return d.children ? "end" : "start";
-          })
-          .text(function (d) {
-            return d.data.name;
-          });
-      });
     </script>
   </body>
 </html>
