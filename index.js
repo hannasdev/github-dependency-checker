@@ -60,16 +60,22 @@ const req = https.request(options, (res) => {
       }
 
       const internalRepos = repos.map((repo) => repo.name);
-      const internalDependencies = {};
+      const dependencyCount = {};
 
       for (const [repo, deps] of Object.entries(repoDependencies)) {
-        internalDependencies[repo] = deps.filter((dep) =>
-          dep.startsWith("@acast-tech/")
-        );
+        deps.forEach((dep) => {
+          if (dep.startsWith("@acast-tech/")) {
+            if (!dependencyCount[dep]) {
+              dependencyCount[dep] = { count: 0, sources: [] };
+            }
+            dependencyCount[dep].count += 1;
+            dependencyCount[dep].sources.push(repo);
+          }
+        });
       }
 
-      console.log("Internal Dependencies:", internalDependencies);
-      saveDependencies(createHierarchy(internalDependencies));
+      console.log("Dependency Count:", dependencyCount);
+      saveDependencies(createGraphData(dependencyCount));
     } else {
       console.log("Error:", JSON.parse(data));
     }
@@ -132,28 +138,26 @@ function parseDependencies(fileName, fileContent) {
   return dependencies;
 }
 
-function createHierarchy(dependencies) {
-  const root = { name: ORG_NAME, children: [] };
-  const nodes = {};
+function createGraphData(dependencyCount) {
+  const nodes = [];
+  const links = [];
 
-  for (const [repo, deps] of Object.entries(dependencies)) {
-    if (!nodes[repo]) {
-      nodes[repo] = { name: repo, children: [] };
-    }
-    deps.forEach((dep) => {
-      if (!nodes[dep]) {
-        nodes[dep] = { name: dep, children: [] };
-      }
-      nodes[repo].children.push(nodes[dep]);
+  Object.keys(dependencyCount).forEach((dep) => {
+    nodes.push({ id: dep, count: dependencyCount[dep].count });
+    dependencyCount[dep].sources.forEach((source) => {
+      links.push({
+        source: source,
+        target: dep,
+        count: dependencyCount[dep].count,
+      });
     });
-  }
+  });
 
-  root.children = Object.values(nodes);
-  return root;
+  return { nodes, links };
 }
 
-function saveDependencies(dependencies) {
+function saveDependencies(graphData) {
   const filePath = "dependencies.json";
-  fs.writeFileSync(filePath, JSON.stringify(dependencies, null, 2), "utf-8");
+  fs.writeFileSync(filePath, JSON.stringify(graphData, null, 2), "utf-8");
   console.log(`Dependencies saved to ${filePath}`);
 }
