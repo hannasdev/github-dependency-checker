@@ -5,7 +5,8 @@ const https = require("https");
 const GITHUB_API_URL = "api.github.com";
 const ORG_NAME = process.env.ORG_NAME;
 const TOKEN = process.env.TOKEN;
-const LIMIT = 200;
+const LIMIT = 10;
+const INTERNAL_REPO_IDENTIFIER = process.env.REPO_IDENTIFIER;
 
 console.log("ORG_NAME:", ORG_NAME);
 console.log("TOKEN:", TOKEN ? "Loaded" : "Not Loaded");
@@ -19,7 +20,7 @@ const headers = {
 
 const options = {
   hostname: GITHUB_API_URL,
-  path: `/orgs/${ORG_NAME}/repos?per_page=${LIMIT}`, // Limit to 10 repositories
+  path: `/orgs/${ORG_NAME}/repos?per_page=${LIMIT}`,
   method: "GET",
   headers: headers,
 };
@@ -36,7 +37,7 @@ const req = https.request(options, (res) => {
   res.on("end", async () => {
     if (res.statusCode === 200) {
       const repos = JSON.parse(data);
-      console.log("Repositories fetched:", repos);
+      console.log("Repositories fetched:", repos.length);
 
       const repoDependencies = {};
 
@@ -58,14 +59,15 @@ const req = https.request(options, (res) => {
             repoDependencies[repoName].push(...deps);
           }
         }
+        console.log(`Parsing dependencies...` + repoDependencies.length);
       }
 
-      const internalRepos = repos.map((repo) => repo.name);
+      // const internalRepos = repos.map((repo) => repo.name);
       const dependencyCount = {};
 
       for (const [repo, deps] of Object.entries(repoDependencies)) {
         deps.forEach((dep) => {
-          if (dep.startsWith("@acast-tech/")) {
+          if (dep.startsWith(INTERNAL_REPO_IDENTIFIER)) {
             if (!dependencyCount[dep]) {
               dependencyCount[dep] = { count: 0, sources: [] };
             }
