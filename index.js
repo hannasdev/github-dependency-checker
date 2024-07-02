@@ -11,7 +11,7 @@ const INTERNAL_REPO_IDENTIFIER = process.env.REPO_IDENTIFIER;
 
 console.log("ORG_NAME:", ORG_NAME);
 console.log("TOKEN:", TOKEN ? "Loaded" : "Not Loaded");
-console.log("TOKEN Length:", TOKEN.length);
+console.log("TOKEN Length:", TOKEN?.length);
 
 // HTTP Headers
 const headers = {
@@ -240,4 +240,16 @@ async function saveDependencies(graphData) {
 }
 
 // Run the main function
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  saveDependencies,
+  parseDependencies,
+  createGraphData,
+  countDependencies,
+  getFileContent,
+  processRepos,
+  fetchRepos,
+};
