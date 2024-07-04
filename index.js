@@ -134,17 +134,36 @@ async function getFileContent(repo, path) {
 
       fileRes.on("end", () => {
         if (fileRes.statusCode === 200) {
-          resolve(JSON.parse(fileData).content);
-          console.log(`Fetched ${path} from ${repo}`);
+          try {
+            const parsedData = JSON.parse(fileData);
+            if (parsedData.content) {
+              resolve(parsedData.content);
+              console.log(`Fetched ${path} from ${repo}`);
+            } else {
+              reject(new Error(`No content found for ${path} in ${repo}`));
+            }
+          } catch (error) {
+            reject(new Error(`Failed to parse file content: ${error.message}`));
+          }
+        } else if (fileRes.statusCode === 404) {
+          resolve(null); // File not found, but not a critical error
         } else {
-          resolve(null);
+          reject(
+            new Error(
+              `GitHub API responded with status code ${fileRes.statusCode} for ${path} in ${repo}`
+            )
+          );
         }
       });
     });
 
     fileReq.on("error", (e) => {
-      console.error(`Problem with request: ${e.message}`);
-      reject(e);
+      reject(new Error(`Request failed for ${path} in ${repo}: ${e.message}`));
+    });
+
+    fileReq.setTimeout(30000, () => {
+      fileReq.abort();
+      reject(new Error(`Request timed out for ${path} in ${repo}`));
     });
 
     fileReq.end();
