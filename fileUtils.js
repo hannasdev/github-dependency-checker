@@ -1,23 +1,19 @@
 const fs = require("fs").promises;
+const { asyncErrorHandler } = require("./errorHandler");
 
-// Save dependencies to a file
 async function saveDependencies(graphData) {
   const filePath = "dependencies.json";
-  return new Promise((resolve, reject) => {
-    fs.writeFile(
-      filePath,
-      JSON.stringify(graphData, null, 2),
-      "utf-8",
-      (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          console.log(`Dependencies saved to ${filePath}`);
-          resolve();
-        }
-      }
-    );
-  });
+  try {
+    await fs.writeFile(filePath, JSON.stringify(graphData, null, 2), "utf-8");
+    console.log(`Dependencies saved to ${filePath}`);
+  } catch (err) {
+    throw new Error(`Failed to save dependencies: ${err.message}`);
+  }
 }
 
-module.exports = { saveDependencies };
+const wrappedSaveDependencies = asyncErrorHandler(saveDependencies);
+
+module.exports = {
+  saveDependencies, // Unwrapped version for testing
+  wrappedSaveDependencies, // Wrapped version for production use
+};

@@ -1,8 +1,13 @@
 const fs = require("fs");
 const { saveDependencies } = require("./fileUtils");
 
-// Mock the fs.writeFileSync method
-jest.mock("fs");
+// Mock only the writeFile function of fs.promises
+jest.mock("fs", () => ({
+  ...jest.requireActual("fs"),
+  promises: {
+    writeFile: jest.fn(),
+  },
+}));
 
 describe("saveDependencies", () => {
   it("should correctly save the dependencies data to a JSON file", async () => {
@@ -22,14 +27,14 @@ describe("saveDependencies", () => {
     // Call saveDependencies with the sample graphData
     await saveDependencies(graphData);
 
-    // Validate that fs.writeFileSync was called with the correct arguments
-    expect(fs.writeFileSync).toHaveBeenCalledWith(
+    // Validate that fs.promises.writeFile was called with the correct arguments
+    expect(fs.promises.writeFile).toHaveBeenCalledWith(
       "dependencies.json",
       JSON.stringify(graphData, null, 2),
       "utf-8"
     );
 
     // Reset the mock
-    fs.writeFileSync.mockReset();
+    fs.promises.writeFile.mockReset();
   });
 });

@@ -5,7 +5,7 @@ const { countDependencies, createGraphData } = require("./graphBuilder");
 const { saveDependencies } = require("./fileUtils");
 const { LIMIT } = require("./config");
 const logger = require("./logger");
-const { asyncErrorHandler, errorHandler } = require("./errorHandler");
+const { asyncErrorHandler } = require("./errorHandler");
 
 async function main() {
   logger.info("Starting dependency analysis");
