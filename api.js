@@ -23,19 +23,19 @@ async function fetchRepos() {
   return new Promise((resolve, reject) => {
     const req = https.request(options, (res) => {
       let data = "";
-      console.log(`Status Code: ${res.statusCode}`);
+      // console.log(`Status Code: ${res.statusCode}`);
 
       res.on("data", (chunk) => {
         data += chunk;
       });
 
       res.on("end", () => {
-        console.log("Raw response data:", data); // Add this line
+        // console.log("Raw response data:", data); // Add this line
         if (res.statusCode === 200) {
           try {
             const repos = JSON.parse(data);
-            console.log("Parsed repositories:", repos); // Add this line
-            console.log("Repositories fetched:", repos.length);
+            // console.log("Parsed repositories:", repos); // Add this line
+            // console.log("Repositories fetched:", repos.length);
             resolve(repos);
           } catch (error) {
             console.error("Error parsing data:", error); // Add this line
@@ -97,7 +97,7 @@ async function getFileContent(repo, filePath) {
           try {
             const parsedData = JSON.parse(fileData);
             if (parsedData.content) {
-              console.log(`Fetched ${filePath} from ${repo}`);
+              // console.log(`Fetched ${filePath} from ${repo}`);
               await setCachedContent(
                 repo,
                 filePath,
