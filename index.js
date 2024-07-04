@@ -54,18 +54,32 @@ function fetchRepos() {
 
       res.on("end", () => {
         if (res.statusCode === 200) {
-          const repos = JSON.parse(data);
-          console.log("Repositories fetched:", repos.length);
-          resolve(repos);
+          try {
+            const repos = JSON.parse(data);
+            console.log("Repositories fetched:", repos.length);
+            resolve(repos);
+          } catch (error) {
+            reject(
+              new Error(`Failed to parse repository data: ${error.message}`)
+            );
+          }
         } else {
-          reject(JSON.parse(data));
+          reject(
+            new Error(
+              `GitHub API responded with status code ${res.statusCode}: ${data}`
+            )
+          );
         }
       });
     });
 
     req.on("error", (e) => {
-      console.error(`Problem with request: ${e.message}`);
-      reject(e);
+      reject(new Error(`Request failed: ${e.message}`));
+    });
+
+    req.setTimeout(30000, () => {
+      req.abort();
+      reject(new Error("Request timed out"));
     });
 
     req.end();
