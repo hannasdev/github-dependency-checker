@@ -24,3 +24,8 @@ const LIMIT = 200;
 ## Debugging
 
 Run the file `testHttps.js` to debug the connection. If it doesn't work, it is probably due to your Token not having the proper permissions to read all the repositories from the organisation.
+
+## TODO
+
+- Support monorepos
+- Search and center on a specific repository in the UI
