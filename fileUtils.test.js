@@ -1,5 +1,5 @@
 const fs = require("fs");
-const { saveDependencies } = require("./index");
+const { saveDependencies } = require("./fileUtils");
 
 // Mock the fs.writeFileSync method
 jest.mock("fs");
