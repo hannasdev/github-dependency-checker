@@ -25,7 +25,7 @@ async function main() {
 }
 
 if (require.main === module) {
-  asyncErrorHandler(main)().catch(errorHandler);
+  asyncErrorHandler(main)();
 }
 
 module.exports = { main };

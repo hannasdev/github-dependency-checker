@@ -1,9 +1,9 @@
 const logger = require("./logger");
 
 function asyncErrorHandler(fn) {
-  return async function (req, res, next) {
+  return async function (...args) {
     try {
-      await fn(req, res, next);
+      return await fn(...args);
     } catch (error) {
       logger.error("Async error:", error);
       process.exit(1);

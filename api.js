@@ -1,6 +1,7 @@
 const https = require("https");
 const { GITHUB_API_URL, ORG_NAME, TOKEN, LIMIT } = require("./config");
 const { getCachedContent, setCachedContent } = require("./cache");
+const { asyncErrorHandler } = require("./errorHandler");
 
 // HTTP Headers
 const headers = {
@@ -29,12 +30,15 @@ async function fetchRepos() {
       });
 
       res.on("end", () => {
+        console.log("Raw response data:", data); // Add this line
         if (res.statusCode === 200) {
           try {
             const repos = JSON.parse(data);
+            console.log("Parsed repositories:", repos); // Add this line
             console.log("Repositories fetched:", repos.length);
             resolve(repos);
           } catch (error) {
+            console.error("Error parsing data:", error); // Add this line
             reject(
               new Error(`Failed to parse repository data: ${error.message}`)
             );
@@ -134,4 +138,11 @@ async function getFileContent(repo, filePath) {
   });
 }
 
-module.exports = { fetchRepos, getFileContent };
+// Wrap the async functions with asyncErrorHandler
+const wrappedFetchRepos = asyncErrorHandler(fetchRepos);
+const wrappedGetFileContent = asyncErrorHandler(getFileContent);
+
+module.exports = {
+  fetchRepos: wrappedFetchRepos,
+  getFileContent: wrappedGetFileContent,
+};
