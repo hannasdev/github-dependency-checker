@@ -13,9 +13,9 @@ async function saveDependencies(graphData) {
     throw new Error(`Failed to save dependencies: ${err.message}`);
   }
 }
-const wrappedSaveDependencies = asyncErrorHandler(saveDependencies);
+const asyncSaveDependencies = asyncErrorHandler(saveDependencies);
 
 module.exports = {
   saveDependencies, // Unwrapped version for testing
-  wrappedSaveDependencies, // Wrapped version for production use
+  asyncSaveDependencies, // Wrapped version for production use
 };

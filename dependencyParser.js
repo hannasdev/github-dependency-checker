@@ -1,6 +1,6 @@
 const ProgressBar = require("progress");
 
-const { getFileContent } = require("./api");
+const { getFileContent: asyncGetFileContent } = require("./api");
 const { asyncErrorHandler } = require("./errorHandler");
 
 // Parse dependencies from file content
@@ -69,9 +69,9 @@ async function processRepos(repos) {
       await Promise.all(
         dependencyFiles.map(async (file) => {
           try {
-            const fileContent = await getFileContent(repoName, file);
+            const fileContent = await asyncGetFileContent(repoName, file);
             if (fileContent) {
-              const deps = parseDependencies(file, fileContent);
+              const deps = await parseDependencies(file, fileContent);
               repoDependencies[repoName].push(...deps);
             }
           } catch (error) {
@@ -87,6 +87,9 @@ async function processRepos(repos) {
   return repoDependencies;
 }
 
-const wrappedProcessRepos = asyncErrorHandler(processRepos);
+const asyncProcessRepos = asyncErrorHandler(processRepos);
 
-module.exports = { processRepos: wrappedProcessRepos, parseDependencies };
+module.exports = {
+  processRepos: asyncProcessRepos,
+  parseDependencies,
+};

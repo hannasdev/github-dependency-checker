@@ -8,18 +8,17 @@ const logger = require("./logger");
  * @returns {Function} - A wrapped async function
  */
 function asyncErrorHandler(fn) {
-  return async function wrappedAsyncFunction(...args) {
-    if (!wrappedAsyncFunction.isAwaited) {
-      logger.warn("Warning: This wrapped function should be called with await");
-    }
+  const wrappedFunction = async function (...args) {
     try {
-      const result = await fn(...args);
-      return result;
+      return await fn(...args);
     } catch (error) {
-      logger.error("Async error:", error);
+      logger.error(`Async error in ${fn.name}:`, error);
       process.exit(1);
     }
   };
+
+  wrappedFunction.originalName = fn.name;
+  return wrappedFunction;
 }
 
 /**

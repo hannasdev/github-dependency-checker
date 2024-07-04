@@ -1,6 +1,6 @@
 require("dotenv").config();
 const axios = require("axios");
-const { asyncErrorHandler, errorHandler } = require("./errorHandler");
+const { asyncErrorHandler } = require("./errorHandler");
 const logger = require("./logger");
 const { GITHUB_API_URL, ORG_NAME, TOKEN } = require("./config");
 
@@ -27,10 +27,10 @@ async function testConnection() {
   }
 }
 
-const wrappedTestConnection = asyncErrorHandler(testConnection);
+const asyncTestConnection = asyncErrorHandler(testConnection);
 
 if (require.main === module) {
-  wrappedTestConnection();
+  asyncTestConnection();
 }
 
-module.exports = { testConnection: wrappedTestConnection };
+module.exports = { testConnection: asyncTestConnection };

@@ -1,6 +1,6 @@
 require("dotenv").config();
 const https = require("https");
-const { asyncErrorHandler, errorHandler } = require("./errorHandler");
+const { asyncErrorHandler } = require("./errorHandler");
 const logger = require("./logger");
 const { GITHUB_API_URL, ORG_NAME, TOKEN } = require("./config");
 
@@ -50,10 +50,10 @@ async function testHttps() {
   });
 }
 
-const wrappedTestHttps = asyncErrorHandler(testHttps);
+const asyncTestHttps = asyncErrorHandler(testHttps);
 
 if (require.main === module) {
-  wrappedTestHttps();
+  asyncTestHttps();
 }
 
-module.exports = { testHttps: wrappedTestHttps };
+module.exports = { testHttps: asyncTestHttps };

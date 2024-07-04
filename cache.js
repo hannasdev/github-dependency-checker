@@ -37,10 +37,10 @@ async function setCachedContent(repo, filePath, content, etag) {
   await fs.promises.writeFile(cacheFile, cacheContent, "utf8");
 }
 
-const wrappedGetCachedContent = asyncErrorHandler(getCachedContent);
-const wrappedSetCachedContent = asyncErrorHandler(setCachedContent);
+const asyncGetCachedContent = asyncErrorHandler(getCachedContent);
+const asyncSetCachedContent = asyncErrorHandler(setCachedContent);
 
 module.exports = {
-  getCachedContent: wrappedGetCachedContent,
-  setCachedContent: wrappedSetCachedContent,
+  getCachedContent: asyncGetCachedContent,
+  setCachedContent: asyncSetCachedContent,
 };

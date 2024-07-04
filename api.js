@@ -1,6 +1,9 @@
 const https = require("https");
 const { GITHUB_API_URL, ORG_NAME, TOKEN, LIMIT } = require("./config");
-const { getCachedContent, setCachedContent } = require("./cache");
+const {
+  getCachedContent: asyncGetCachedContent,
+  setCachedContent: asyncSetCachedContent,
+} = require("./cache");
 const { asyncErrorHandler } = require("./errorHandler");
 
 // HTTP Headers
@@ -75,7 +78,7 @@ async function getFileContent(repo, filePath) {
     headers: { ...headers },
   };
 
-  const cachedData = await getCachedContent(repo, filePath);
+  const cachedData = await asyncGetCachedContent(repo, filePath);
   if (cachedData) {
     fileOptions.headers["If-None-Match"] = cachedData.etag;
   }
@@ -91,14 +94,14 @@ async function getFileContent(repo, filePath) {
       fileRes.on("end", async () => {
         if (fileRes.statusCode === 304) {
           // Content hasn't changed, use cached data
-          console.log(`Using cached content for ${filePath} from ${repo}`);
+          // console.log(`Using cached content for ${filePath} from ${repo}`);
           resolve(cachedData.content);
         } else if (fileRes.statusCode === 200) {
           try {
             const parsedData = JSON.parse(fileData);
             if (parsedData.content) {
               // console.log(`Fetched ${filePath} from ${repo}`);
-              await setCachedContent(
+              await asyncSetCachedContent(
                 repo,
                 filePath,
                 parsedData.content,
@@ -139,10 +142,10 @@ async function getFileContent(repo, filePath) {
 }
 
 // Wrap the async functions with asyncErrorHandler
-const wrappedFetchRepos = asyncErrorHandler(fetchRepos);
-const wrappedGetFileContent = asyncErrorHandler(getFileContent);
+const asyncFetchRepos = asyncErrorHandler(fetchRepos);
+const asyncGetFileContent = asyncErrorHandler(getFileContent);
 
 module.exports = {
-  fetchRepos: wrappedFetchRepos,
-  getFileContent: wrappedGetFileContent,
+  fetchRepos: asyncFetchRepos,
+  getFileContent: asyncGetFileContent,
 };
