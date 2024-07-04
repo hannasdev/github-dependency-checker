@@ -37,7 +37,16 @@ async function main() {
     console.log("Dependency Count:", dependencyCount);
     saveDependencies(createGraphData(repoDependencies, dependencyCount));
   } catch (error) {
-    console.error("Error:", error);
+    if (error.message.includes("GitHub API responded with status code")) {
+      console.error("GitHub API Error:", error.message);
+    } else if (error.message.includes("Request failed")) {
+      console.error("Network Error:", error.message);
+    } else if (error.message.includes("Request timed out")) {
+      console.error("Timeout Error:", error.message);
+    } else {
+      console.error("Unexpected Error:", error.message);
+    }
+    process.exit(1); // Exit with error code
   }
 }
 
