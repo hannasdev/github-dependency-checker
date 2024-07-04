@@ -1,13 +1,12 @@
 require("dotenv").config();
 const https = require("https");
-
-const GITHUB_API_URL = "api.github.com";
-const ORG_NAME = process.env.ORG_NAME;
-const TOKEN = process.env.TOKEN;
+const { asyncErrorHandler, errorHandler } = require("./errorHandler");
+const logger = require("./logger");
+const { GITHUB_API_URL, ORG_NAME, TOKEN } = require("./config");
 
 console.log("ORG_NAME:", ORG_NAME);
 console.log("TOKEN:", TOKEN ? "Loaded" : "Not Loaded");
-console.log("TOKEN Length:", TOKEN);
+console.log("TOKEN Length:", TOKEN.length);
 
 const options = {
   hostname: GITHUB_API_URL,
@@ -20,27 +19,41 @@ const options = {
   },
 };
 
-const req = https.request(options, (res) => {
-  let data = "";
+async function testHttps() {
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      let data = "";
 
-  // Log status code for debugging purposes
-  console.log(`Status Code: ${res.statusCode}`);
+      logger.info(`Status Code: ${res.statusCode}`);
 
-  res.on("data", (chunk) => {
-    data += chunk;
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      res.on("end", () => {
+        if (res.statusCode === 200) {
+          logger.info("Connection successful:", JSON.parse(data));
+          resolve(data);
+        } else {
+          logger.error("Error:", JSON.parse(data));
+          reject(new Error(`HTTP Status Code: ${res.statusCode}`));
+        }
+      });
+    });
+
+    req.on("error", (e) => {
+      logger.error(`Problem with request: ${e.message}`);
+      reject(e);
+    });
+
+    req.end();
   });
+}
 
-  res.on("end", () => {
-    if (res.statusCode === 200) {
-      console.log("Connection successful:", JSON.parse(data));
-    } else {
-      console.log("Error:", JSON.parse(data));
-    }
-  });
-});
+const wrappedTestHttps = asyncErrorHandler(testHttps);
 
-req.on("error", (e) => {
-  console.error(`Problem with request: ${e.message}`);
-});
+if (require.main === module) {
+  wrappedTestHttps();
+}
 
-req.end();
+module.exports = { testHttps: wrappedTestHttps };

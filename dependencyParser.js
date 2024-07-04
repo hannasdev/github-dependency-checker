@@ -1,6 +1,7 @@
 const ProgressBar = require("progress");
 
 const { getFileContent } = require("./api");
+const { asyncErrorHandler } = require("./errorHandler");
 
 // Parse dependencies from file content
 function parseDependencies(fileName, fileContent) {
@@ -86,4 +87,6 @@ async function processRepos(repos) {
   return repoDependencies;
 }
 
-module.exports = { processRepos, parseDependencies };
+const wrappedProcessRepos = asyncErrorHandler(processRepos);
+
+module.exports = { processRepos: wrappedProcessRepos, parseDependencies };

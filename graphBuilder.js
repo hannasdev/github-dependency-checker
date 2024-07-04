@@ -1,4 +1,5 @@
 const { INTERNAL_REPO_IDENTIFIER } = require("./config");
+const { asyncErrorHandler } = require("./errorHandler");
 
 // Count internal dependencies
 function countDependencies(repoDependencies) {
@@ -54,4 +55,10 @@ function createGraphData(repoDependencies, dependencyCount) {
   return { nodes, links };
 }
 
-module.exports = { countDependencies, createGraphData };
+const wrappedCountDependencies = asyncErrorHandler(countDependencies);
+const wrappedCreateGraphData = asyncErrorHandler(createGraphData);
+
+module.exports = {
+  countDependencies: wrappedCountDependencies,
+  createGraphData: wrappedCreateGraphData,
+};
