@@ -1,5 +1,7 @@
 require("dotenv").config();
 const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 const https = require("https");
 const ProgressBar = require("progress");
 
@@ -9,6 +11,7 @@ const ORG_NAME = process.env.ORG_NAME;
 const TOKEN = process.env.TOKEN;
 const LIMIT = 10;
 const INTERNAL_REPO_IDENTIFIER = process.env.REPO_IDENTIFIER;
+const CACHE_DIR = path.join(__dirname, ".cache");
 
 console.log("ORG_NAME:", ORG_NAME);
 console.log("TOKEN:", TOKEN ? "Loaded" : "Not Loaded");
@@ -49,6 +52,39 @@ async function main() {
     }
     process.exit(1); // Exit with error code
   }
+}
+
+/// Ensure cache directory exists
+if (!fs.existsSync(CACHE_DIR)) {
+  fs.mkdirSync(CACHE_DIR);
+}
+
+function getCacheKey(repo, filePath) {
+  return crypto.createHash("md5").update(`${repo}:${filePath}`).digest("hex");
+}
+
+async function getCachedContent(repo, filePath) {
+  const cacheKey = getCacheKey(repo, filePath);
+  const cacheFile = path.join(CACHE_DIR, cacheKey);
+
+  if (fs.existsSync(cacheFile)) {
+    const { content, etag, timestamp } = JSON.parse(
+      await fs.promises.readFile(cacheFile, "utf8")
+    );
+    // Check if cache is not older than 1 day
+    if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+      return { content, etag };
+    }
+  }
+
+  return null;
+}
+
+async function setCachedContent(repo, filePath, content, etag) {
+  const cacheKey = getCacheKey(repo, filePath);
+  const cacheFile = path.join(CACHE_DIR, cacheKey);
+  const cacheContent = JSON.stringify({ content, etag, timestamp: Date.now() });
+  await fs.promises.writeFile(cacheFile, cacheContent, "utf8");
 }
 
 // Fetch Repositories from GitHub
@@ -140,13 +176,18 @@ async function processRepos(repos) {
 }
 
 // Get content of a file from a repository
-async function getFileContent(repo, path) {
+async function getFileContent(repo, filePath) {
   const fileOptions = {
     hostname: GITHUB_API_URL,
-    path: `/repos/${ORG_NAME}/${repo}/contents/${path}`,
+    path: `/repos/${ORG_NAME}/${repo}/contents/${filePath}`,
     method: "GET",
-    headers: headers,
+    headers: { ...headers },
   };
+
+  const cachedData = await getCachedContent(repo, filePath);
+  if (cachedData) {
+    fileOptions.headers["If-None-Match"] = cachedData.etag;
+  }
 
   return new Promise((resolve, reject) => {
     const fileReq = https.request(fileOptions, (fileRes) => {
@@ -156,15 +197,25 @@ async function getFileContent(repo, path) {
         fileData += chunk;
       });
 
-      fileRes.on("end", () => {
-        if (fileRes.statusCode === 200) {
+      fileRes.on("end", async () => {
+        if (fileRes.statusCode === 304) {
+          // Content hasn't changed, use cached data
+          console.log(`Using cached content for ${filePath} from ${repo}`);
+          resolve(cachedData.content);
+        } else if (fileRes.statusCode === 200) {
           try {
             const parsedData = JSON.parse(fileData);
             if (parsedData.content) {
-              console.log(`Fetched ${path} from ${repo}`);
+              console.log(`Fetched ${filePath} from ${repo}`);
+              await setCachedContent(
+                repo,
+                filePath,
+                parsedData.content,
+                fileRes.headers.etag
+              );
               resolve(parsedData.content);
             } else {
-              reject(new Error(`No content found for ${path} in ${repo}`));
+              reject(new Error(`No content found for ${filePath} in ${repo}`));
             }
           } catch (error) {
             reject(new Error(`Failed to parse file content: ${error.message}`));
@@ -174,7 +225,7 @@ async function getFileContent(repo, path) {
         } else {
           reject(
             new Error(
-              `GitHub API responded with status code ${fileRes.statusCode} for ${path} in ${repo}`
+              `GitHub API responded with status code ${fileRes.statusCode} for ${filePath} in ${repo}`
             )
           );
         }
@@ -182,12 +233,14 @@ async function getFileContent(repo, path) {
     });
 
     fileReq.on("error", (e) => {
-      reject(new Error(`Request failed for ${path} in ${repo}: ${e.message}`));
+      reject(
+        new Error(`Request failed for ${filePath} in ${repo}: ${e.message}`)
+      );
     });
 
     fileReq.setTimeout(30000, () => {
       fileReq.abort();
-      reject(new Error(`Request timed out for ${path} in ${repo}`));
+      reject(new Error(`Request timed out for ${filePath} in ${repo}`));
     });
 
     fileReq.end();
