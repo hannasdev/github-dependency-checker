@@ -1,6 +1,7 @@
 require("dotenv").config();
 const fs = require("fs");
 const https = require("https");
+const ProgressBar = require("progress");
 
 // Environment Variables and Constants
 const GITHUB_API_URL = "api.github.com";
@@ -51,7 +52,7 @@ async function main() {
 }
 
 // Fetch Repositories from GitHub
-function fetchRepos() {
+async function fetchRepos() {
   return new Promise((resolve, reject) => {
     const req = https.request(options, (res) => {
       let data = "";
@@ -98,28 +99,42 @@ function fetchRepos() {
 // Process each repository to get dependencies
 async function processRepos(repos) {
   const repoDependencies = {};
+  const dependencyFiles = [
+    "package.json",
+    "requirements.txt",
+    "Gemfile",
+    "pom.xml",
+  ];
 
-  for (const repo of repos) {
-    const repoName = repo.name;
-    repoDependencies[repoName] = [];
+  const bar = new ProgressBar("Processing repositories [:bar] :percent :etas", {
+    complete: "=",
+    incomplete: " ",
+    width: 20,
+    total: repos.length,
+  });
 
-    const dependencyFiles = [
-      "package.json",
-      "requirements.txt",
-      "Gemfile",
-      "pom.xml",
-    ];
+  await Promise.all(
+    repos.map(async (repo) => {
+      const repoName = repo.name;
+      repoDependencies[repoName] = [];
 
-    for (const file of dependencyFiles) {
-      const fileContent = await getFileContent(repoName, file);
-      if (fileContent) {
-        const deps = parseDependencies(file, fileContent);
-        repoDependencies[repoName].push(...deps);
-      }
-    }
+      await Promise.all(
+        dependencyFiles.map(async (file) => {
+          try {
+            const fileContent = await getFileContent(repoName, file);
+            if (fileContent) {
+              const deps = parseDependencies(file, fileContent);
+              repoDependencies[repoName].push(...deps);
+            }
+          } catch (error) {
+            console.error(`Error processing ${file} for ${repoName}:`, error);
+          }
+        })
+      );
 
-    console.log(`Parsing dependencies for ${repoName}...`);
-  }
+      bar.tick();
+    })
+  );
 
   return repoDependencies;
 }
@@ -146,8 +161,8 @@ async function getFileContent(repo, path) {
           try {
             const parsedData = JSON.parse(fileData);
             if (parsedData.content) {
-              resolve(parsedData.content);
               console.log(`Fetched ${path} from ${repo}`);
+              resolve(parsedData.content);
             } else {
               reject(new Error(`No content found for ${path} in ${repo}`));
             }
@@ -277,13 +292,28 @@ function createGraphData(repoDependencies, dependencyCount) {
 // Save dependencies to a file
 async function saveDependencies(graphData) {
   const filePath = "dependencies.json";
-  fs.writeFileSync(filePath, JSON.stringify(graphData, null, 2), "utf-8");
-  console.log(`Dependencies saved to ${filePath}`);
+  return new Promise((resolve, reject) => {
+    fs.writeFile(
+      filePath,
+      JSON.stringify(graphData, null, 2),
+      "utf-8",
+      (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          console.log(`Dependencies saved to ${filePath}`);
+          resolve();
+        }
+      }
+    );
+  });
 }
-
 // Run the main function
 if (require.main === module) {
-  main();
+  main().catch((error) => {
+    console.error("Unhandled error in main:", error);
+    process.exit(1);
+  });
 }
 
 module.exports = {
