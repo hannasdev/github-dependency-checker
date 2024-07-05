@@ -2,9 +2,23 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dependency Graph</title>
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <style>
+      svg {
+        width: 100%;
+        height: 100vh;
+      }
+
+      #loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 24px;
+      }
+
       .node circle {
         fill: #fff;
         stroke: steelblue;
@@ -30,6 +44,7 @@
     </style>
   </head>
   <body>
+    <div id="loading">Loading...</div>
     <!-- Search box for node name -->
     <div id="searchBox">
       <input type="text" id="nodeNameInput" placeholder="Enter node name" />
@@ -40,11 +55,13 @@
       let svg; // Define svg globally
       let simulation; // Define simulation globally
 
+      const width = 960;
+      const height = 600;
+
       // Load the dependencies JSON file from the server
       d3.json("dependencies.json")
         .then(function (data) {
-          const width = 960;
-          const height = 600;
+          document.getElementById("loading").style.display = "none";
 
           svg = d3
             .select("body")
@@ -153,33 +170,40 @@
             d.fy = null;
           }
 
-          // Function to center on a specific node based on its name
-          window.centerOnNode = function () {
-            const nodeName = document
-              .getElementById("nodeNameInput")
-              .value.trim()
-              .toLowerCase();
-            const selectedNode = data.nodes.find(
-              (node) => node.id.toLowerCase() === nodeName
-            );
-            if (selectedNode) {
-              const transform = d3.zoomIdentity
-                .translate(width / 2, height / 2)
-                .scale(1)
-                .translate(-selectedNode.x, -selectedNode.y);
-
-              svg
-                .transition()
-                .duration(750)
-                .call(d3.zoom().transform, transform);
-            } else {
-              alert("Node not found!");
-            }
-          };
+          svg.call(zoom);
         })
         .catch(function (error) {
           console.error("Error loading the JSON file:", error);
+          document.getElementById("loading").textContent =
+            "Error loading data. Please try again later.";
         });
+
+      const zoom = d3
+        .zoom()
+        .scaleExtent([0.1, 4])
+        .on("zoom", (event) => {
+          svg.attr("transform", event.transform);
+        });
+
+      // Function to center on a specific node based on its name
+      function centerOnNode() {
+        const nodeName = document
+          .getElementById("nodeNameInput")
+          .value.trim()
+          .toLowerCase();
+        const node = svg
+          .selectAll(".node")
+          .filter((d) => d.id.toLowerCase() === nodeName);
+        if (node.size() > 0) {
+          const transform = d3.zoomIdentity.translate(
+            width / 2 - node.datum().x,
+            height / 2 - node.datum().y
+          );
+          svg.transition().duration(750).call(zoom.transform, transform);
+        } else {
+          alert("Node not found!");
+        }
+      }
     </script>
   </body>
 </html>
