@@ -3,16 +3,19 @@ jest.mock("../config", () => ({
   INTERNAL_REPO_IDENTIFIER: "@internal/",
 }));
 
-const { countDependencies, createGraphData } = require("../graphBuilder");
+const {
+  countDependencies: asyncCountDependencies,
+  createGraphData,
+} = require("../graphBuilder");
 
 describe("GraphBuilder module", () => {
-  test("countDependencies returns correct count", () => {
+  test("countDependencies returns correct count", async () => {
     const repoDependencies = {
       repo1: ["@internal/dep1", "@internal/dep2", "external-dep"],
       repo2: ["@internal/dep1", "@internal/dep3", "another-external-dep"],
     };
 
-    const result = countDependencies(repoDependencies);
+    const result = await asyncCountDependencies(repoDependencies);
 
     expect(result).toEqual({
       "@internal/dep1": { count: 2, sources: ["repo1", "repo2"] },
