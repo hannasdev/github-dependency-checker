@@ -6,15 +6,16 @@ const logger = require("./logger");
 function countDependencies(repoDependencies) {
   const dependencyCount = {};
 
+  const isInternalDependency = (dep) =>
+    dep.startsWith(INTERNAL_REPO_IDENTIFIER);
+
   for (const [repo, deps] of Object.entries(repoDependencies)) {
-    deps.forEach((dep) => {
-      if (dep.startsWith(INTERNAL_REPO_IDENTIFIER)) {
-        if (!dependencyCount[dep]) {
-          dependencyCount[dep] = { count: 0, sources: [] };
-        }
-        dependencyCount[dep].count += 1;
-        dependencyCount[dep].sources.push(repo);
+    deps.filter(isInternalDependency).forEach((dep) => {
+      if (!dependencyCount[dep]) {
+        dependencyCount[dep] = { count: 0, sources: [] };
       }
+      dependencyCount[dep].count += 1;
+      dependencyCount[dep].sources.push(repo);
     });
   }
 
@@ -23,42 +24,51 @@ function countDependencies(repoDependencies) {
 
 // Create graph data from dependencies
 function createGraphData(repoDependencies, dependencyCount) {
-  logger.info("Creating graph data...");
-  // logger.info("Input repoDependencies:", repoDependencies);
-  // logger.info("Input dependencyCount:", dependencyCount);
-
   const nodes = [];
   const links = [];
-  const nodeMap = {};
+  const nodeMap = new Map();
 
-  for (const repo of Object.keys(repoDependencies)) {
-    const node = { id: repo, depth: 0 };
-    nodes.push(node);
-    nodeMap[repo] = node;
-  }
+  const isInternalDependency = (dep) =>
+    dep.startsWith(INTERNAL_REPO_IDENTIFIER);
 
-  for (const [dep, info] of Object.entries(dependencyCount)) {
-    if (!nodeMap[dep]) {
-      const node = { id: dep, count: info.count };
+  // First, create all nodes and assign depth 0 to root nodes
+  for (const [repo, deps] of Object.entries(repoDependencies)) {
+    if (!nodeMap.has(repo)) {
+      const node = { id: repo, depth: 0 };
       nodes.push(node);
-      nodeMap[dep] = node;
+      nodeMap.set(repo, node);
     }
 
-    info.sources.forEach((source) => {
-      links.push({
-        source: source,
-        target: dep,
-        count: info.count,
-      });
-
-      if (nodeMap[source].depth + 1 > nodeMap[dep].depth) {
-        nodeMap[dep].depth = nodeMap[source].depth + 1;
+    deps.filter(isInternalDependency).forEach((dep) => {
+      if (!nodeMap.has(dep)) {
+        const node = { id: dep, depth: -1 }; // Initialize with -1, will update later
+        nodes.push(node);
+        nodeMap.set(dep, node);
       }
     });
   }
 
-  // logger.info("Output nodes:", nodes);
-  // logger.info("Output links:", links);
+  // Create links and update depths
+  for (const [repo, deps] of Object.entries(repoDependencies)) {
+    deps.filter(isInternalDependency).forEach((dep) => {
+      links.push({
+        source: repo,
+        target: dep,
+        count: dependencyCount[dep]?.count || 1,
+      });
+
+      // Update depth if needed
+      const depNode = nodeMap.get(dep);
+      if (depNode.depth === -1 || depNode.depth > nodeMap.get(repo).depth + 1) {
+        depNode.depth = nodeMap.get(repo).depth + 1;
+      }
+    });
+  }
+
+  // Assign count to nodes
+  nodes.forEach((node) => {
+    node.count = dependencyCount[node.id]?.count || 0;
+  });
 
   return { nodes, links };
 }
