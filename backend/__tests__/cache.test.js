@@ -16,14 +16,14 @@ jest.mock("dotenv", () => ({
   config: jest.fn(),
 }));
 
-jest.mock("../config", () => ({
+jest.mock("../src/config", () => ({
   CACHE_DIR: "mock-cache-dir",
 }));
 
 jest.mock("winston");
 
 const fs = require("fs").promises;
-const cache = require("../cache");
+const cache = require("../src/cache");
 
 describe("Cache module", () => {
   beforeEach(() => {

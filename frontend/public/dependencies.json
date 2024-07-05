@@ -2,103 +2,128 @@
   "nodes": [
     {
       "id": "www",
-      "depth": 0
+      "depth": 0,
+      "count": 0
     },
     {
       "id": "stats",
-      "depth": 0
+      "depth": 0,
+      "count": 0
     },
     {
       "id": "create",
-      "depth": 0
-    },
-    {
-      "id": "auth",
-      "depth": 0
-    },
-    {
-      "id": "rss",
-      "depth": 0
-    },
-    {
-      "id": "urlShortener",
-      "depth": 0
-    },
-    {
-      "id": "wp-plugin",
-      "depth": 0
-    },
-    {
-      "id": "app-api",
-      "depth": 0
-    },
-    {
-      "id": "meta",
-      "depth": 0
-    },
-    {
-      "id": "interaction",
-      "depth": 0
+      "depth": 0,
+      "count": 0
     },
     {
       "id": "@acast-tech/auth-client",
+      "depth": 1,
       "count": 1
     },
     {
       "id": "@acast-tech/auth-token-util",
+      "depth": 1,
       "count": 1
     },
     {
       "id": "@acast-tech/common-config",
+      "depth": 1,
       "count": 2
     },
     {
       "id": "@acast-tech/decibel",
+      "depth": 1,
       "count": 1
     },
     {
       "id": "@acast-tech/decibel-glyphs",
+      "depth": 1,
       "count": 1
     },
     {
       "id": "@acast-tech/node-server",
+      "depth": 1,
       "count": 1
     },
     {
       "id": "@acast-tech/product-suite-app-shell",
+      "depth": 1,
       "count": 1
     },
     {
       "id": "@acast-tech/product-suite-app-utils",
+      "depth": 1,
       "count": 1
     },
     {
       "id": "@acast-tech/reactor",
+      "depth": 1,
       "count": 1
     },
     {
       "id": "@acast-tech/satellite-infrastructure",
+      "depth": 1,
       "count": 1
     },
     {
       "id": "@acast-tech/www-utils",
+      "depth": 1,
       "count": 1
     },
     {
       "id": "@acast-tech/common-config-webpack-plugin",
+      "depth": 1,
       "count": 1
     },
     {
       "id": "@acast-tech/test-helpers",
+      "depth": 1,
       "count": 1
     },
     {
+      "id": "auth",
+      "depth": 0,
+      "count": 0
+    },
+    {
+      "id": "rss",
+      "depth": 0,
+      "count": 0
+    },
+    {
       "id": "@acast-tech/config",
+      "depth": 1,
       "count": 1
     },
     {
       "id": "@acast-tech/logger-client",
+      "depth": 1,
       "count": 2
+    },
+    {
+      "id": "urlShortener",
+      "depth": 0,
+      "count": 0
+    },
+    {
+      "id": "wp-plugin",
+      "depth": 0,
+      "count": 0
+    },
+    {
+      "id": "app-api",
+      "depth": 0,
+      "count": 0
+    },
+    {
+      "id": "meta",
+      "depth": 0,
+      "count": 0
+    },
+    {
+      "id": "interaction",
+      "depth": 0,
+      "count": 0
     }
   ],
   "links": [
@@ -114,11 +139,6 @@
     },
     {
       "source": "create",
-      "target": "@acast-tech/common-config",
-      "count": 2
-    },
-    {
-      "source": "interaction",
       "target": "@acast-tech/common-config",
       "count": 2
     },
@@ -180,6 +200,11 @@
     {
       "source": "rss",
       "target": "@acast-tech/logger-client",
+      "count": 2
+    },
+    {
+      "source": "interaction",
+      "target": "@acast-tech/common-config",
       "count": 2
     },
     {

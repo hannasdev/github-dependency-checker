@@ -1,15 +1,15 @@
 const nock = require("nock");
-const { fetchRepos, getFileContent } = require("../api");
-const { GITHUB_API_URL, ORG_NAME } = require("../config");
+const { fetchRepos, getFileContent } = require("../src/api");
+const { GITHUB_API_URL, ORG_NAME } = require("../src/config");
 
-jest.mock("../config", () => ({
+jest.mock("../src/config", () => ({
   GITHUB_API_URL: "api.github.com",
   ORG_NAME: "test-org",
   TOKEN: "test-token",
   LIMIT: 100,
 }));
 
-jest.mock("../cache", () => ({
+jest.mock("../src/cache", () => ({
   getCachedContent: jest.fn(),
   setCachedContent: jest.fn(),
 }));

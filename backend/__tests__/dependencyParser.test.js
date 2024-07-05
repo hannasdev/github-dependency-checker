@@ -1,7 +1,7 @@
-const { processRepos, parseDependencies } = require("../dependencyParser");
-const { getFileContent } = require("../api");
+const { processRepos, parseDependencies } = require("../src/dependencyParser");
+const { getFileContent } = require("../src/api");
 
-jest.mock("../api");
+jest.mock("../src/api");
 jest.mock("winston");
 describe("DependencyParser module", () => {
   test("processRepos returns dependencies for each repo", async () => {

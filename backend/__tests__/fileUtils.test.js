@@ -1,5 +1,5 @@
 const fs = require("fs").promises;
-const { saveDependencies } = require("../fileUtils");
+const { saveDependencies } = require("../src/fileUtils");
 
 jest.mock("winston");
 jest.mock("fs", () => ({

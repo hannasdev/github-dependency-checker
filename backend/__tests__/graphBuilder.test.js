@@ -1,10 +1,10 @@
 const {
   _countDependencies: countDependencies,
   _createGraphData: createGraphData,
-} = require("../graphBuilder");
+} = require("../src/graphBuilder");
 
 jest.mock("winston");
-jest.mock("../config", () => ({
+jest.mock("../src/config", () => ({
   INTERNAL_REPO_IDENTIFIER: "@acast-tech/",
 }));
 
