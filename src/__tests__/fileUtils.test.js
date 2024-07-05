@@ -14,7 +14,7 @@ describe("FileUtils module", () => {
     saveDependencies(graphData);
 
     expect(fs.writeFile).toHaveBeenCalledWith(
-      "dependencies.json",
+      "../dependencies.json",
       JSON.stringify(graphData, null, 2),
       "utf-8"
     );

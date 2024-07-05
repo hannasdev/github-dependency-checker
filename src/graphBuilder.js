@@ -24,8 +24,8 @@ function countDependencies(repoDependencies) {
 // Create graph data from dependencies
 function createGraphData(repoDependencies, dependencyCount) {
   logger.info("Creating graph data...");
-  logger.info("Input repoDependencies:", repoDependencies);
-  logger.info("Input dependencyCount:", dependencyCount);
+  // logger.info("Input repoDependencies:", repoDependencies);
+  // logger.info("Input dependencyCount:", dependencyCount);
 
   const nodes = [];
   const links = [];
@@ -57,16 +57,17 @@ function createGraphData(repoDependencies, dependencyCount) {
     });
   }
 
-  logger.info("Output nodes:", nodes);
-  logger.info("Output links:", links);
+  // logger.info("Output nodes:", nodes);
+  // logger.info("Output links:", links);
 
   return { nodes, links };
 }
 
 const asyncCreateGraphData = asyncErrorHandler(createGraphData);
+const asyncCountDependencies = asyncErrorHandler(countDependencies);
 
 module.exports = {
-  countDependencies,
+  countDependencies: asyncCountDependencies,
   createGraphData: asyncCreateGraphData,
   createGraphData, // For tests only
 };

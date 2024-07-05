@@ -5,6 +5,7 @@ const {
   setCachedContent: asyncSetCachedContent,
 } = require("./cache");
 const { asyncErrorHandler } = require("./errorHandler");
+const logger = require("./logger");
 
 // HTTP Headers
 const headers = {
@@ -26,22 +27,22 @@ async function fetchRepos() {
   return new Promise((resolve, reject) => {
     const req = https.request(options, (res) => {
       let data = "";
-      // console.log(`Status Code: ${res.statusCode}`);
+      logger.info(`Status Code: ${res.statusCode}`);
 
       res.on("data", (chunk) => {
         data += chunk;
       });
 
       res.on("end", () => {
-        // console.log("Raw response data:", data); // Add this line
+        // logger.info("Raw response data:", data);
         if (res.statusCode === 200) {
           try {
             const repos = JSON.parse(data);
-            // console.log("Parsed repositories:", repos); // Add this line
-            // console.log("Repositories fetched:", repos.length);
+            // logger.info("Parsed repositories:", repos);
+            logger.info("Repositories fetched:", repos.length);
             resolve(repos);
           } catch (error) {
-            console.error("Error parsing data:", error); // Add this line
+            logger.error("Error parsing data:", error);
             reject(
               new Error(`Failed to parse repository data: ${error.message}`)
             );

@@ -1,0 +1,191 @@
+{
+  "nodes": [
+    {
+      "id": "www",
+      "depth": 0
+    },
+    {
+      "id": "stats",
+      "depth": 0
+    },
+    {
+      "id": "create",
+      "depth": 0
+    },
+    {
+      "id": "auth",
+      "depth": 0
+    },
+    {
+      "id": "rss",
+      "depth": 0
+    },
+    {
+      "id": "urlShortener",
+      "depth": 0
+    },
+    {
+      "id": "wp-plugin",
+      "depth": 0
+    },
+    {
+      "id": "app-api",
+      "depth": 0
+    },
+    {
+      "id": "meta",
+      "depth": 0
+    },
+    {
+      "id": "interaction",
+      "depth": 0
+    },
+    {
+      "id": "@acast-tech/auth-client",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/auth-token-util",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/common-config",
+      "count": 2
+    },
+    {
+      "id": "@acast-tech/decibel",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/decibel-glyphs",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/node-server",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/product-suite-app-shell",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/product-suite-app-utils",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/reactor",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/satellite-infrastructure",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/www-utils",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/common-config-webpack-plugin",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/test-helpers",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/config",
+      "count": 1
+    },
+    {
+      "id": "@acast-tech/logger-client",
+      "count": 2
+    }
+  ],
+  "links": [
+    {
+      "source": "create",
+      "target": "@acast-tech/auth-client",
+      "count": 1
+    },
+    {
+      "source": "create",
+      "target": "@acast-tech/auth-token-util",
+      "count": 1
+    },
+    {
+      "source": "create",
+      "target": "@acast-tech/common-config",
+      "count": 2
+    },
+    {
+      "source": "interaction",
+      "target": "@acast-tech/common-config",
+      "count": 2
+    },
+    {
+      "source": "create",
+      "target": "@acast-tech/decibel",
+      "count": 1
+    },
+    {
+      "source": "create",
+      "target": "@acast-tech/decibel-glyphs",
+      "count": 1
+    },
+    {
+      "source": "create",
+      "target": "@acast-tech/node-server",
+      "count": 1
+    },
+    {
+      "source": "create",
+      "target": "@acast-tech/product-suite-app-shell",
+      "count": 1
+    },
+    {
+      "source": "create",
+      "target": "@acast-tech/product-suite-app-utils",
+      "count": 1
+    },
+    {
+      "source": "create",
+      "target": "@acast-tech/reactor",
+      "count": 1
+    },
+    {
+      "source": "create",
+      "target": "@acast-tech/satellite-infrastructure",
+      "count": 1
+    },
+    {
+      "source": "create",
+      "target": "@acast-tech/www-utils",
+      "count": 1
+    },
+    {
+      "source": "create",
+      "target": "@acast-tech/common-config-webpack-plugin",
+      "count": 1
+    },
+    {
+      "source": "create",
+      "target": "@acast-tech/test-helpers",
+      "count": 1
+    },
+    {
+      "source": "rss",
+      "target": "@acast-tech/config",
+      "count": 1
+    },
+    {
+      "source": "rss",
+      "target": "@acast-tech/logger-client",
+      "count": 2
+    },
+    {
+      "source": "interaction",
+      "target": "@acast-tech/logger-client",
+      "count": 2
+    }
+  ]
+}

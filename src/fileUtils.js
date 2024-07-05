@@ -3,7 +3,7 @@ const { asyncErrorHandler } = require("./errorHandler");
 const logger = require("./logger");
 
 async function saveDependencies(graphData) {
-  const filePath = "dependencies.json";
+  const filePath = "../dependencies.json";
   try {
     logger.info("Attempting to save dependencies...");
     logger.info("Graph data:", JSON.stringify(graphData));

@@ -23,7 +23,6 @@ jest.mock("../config", () => ({
 jest.mock("winston");
 
 const fs = require("fs").promises;
-const { mkdirSync } = require("fs");
 const cache = require("../cache");
 
 describe("Cache module", () => {
