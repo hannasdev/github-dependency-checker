@@ -1,5 +1,6 @@
-import { GraphRenderer } from "./graphRenderer.js";
-import { DataLoader } from "./dataLoader.js";
+import "./styles/styles.css";
+import { GraphRenderer } from "./utils/graphRenderer.js";
+import { DataLoader } from "./utils/dataLoader.js";
 
 const graphContainer = document.getElementById("graphContainer");
 const searchInput = document.getElementById("nodeNameInput");
@@ -12,7 +13,7 @@ let graphRenderer;
 
 async function init() {
   const dataLoader = new DataLoader();
-  const data = await dataLoader.loadData("dependencies.json");
+  const data = await dataLoader.loadData("../../shared/data/dependencies.json");
 
   document.getElementById("loading").style.display = "none";
 
