@@ -42,5 +42,7 @@ const asyncSetCachedContent = asyncErrorHandler(setCachedContent);
 
 module.exports = {
   getCachedContent: asyncGetCachedContent,
+  getCachedContent, // for test only
   setCachedContent: asyncSetCachedContent,
+  setCachedContent, // for test only
 };

@@ -79,7 +79,7 @@ async function getFileContent(repo, filePath) {
   };
 
   const cachedData = await asyncGetCachedContent(repo, filePath);
-  if (cachedData) {
+  if (cachedData && cachedData.etag) {
     fileOptions.headers["If-None-Match"] = cachedData.etag;
   }
 
@@ -147,5 +147,7 @@ const asyncGetFileContent = asyncErrorHandler(getFileContent);
 
 module.exports = {
   fetchRepos: asyncFetchRepos,
+  fetchRepos, // For test only
   getFileContent: asyncGetFileContent,
+  getFileContent, // for test only
 };

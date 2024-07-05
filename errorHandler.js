@@ -32,11 +32,11 @@ function errorHandler(error) {
 }
 
 // This is a utility function to check if a function is being awaited
-Object.defineProperty(Promise.prototype, "isAwaited", {
-  get() {
-    const stackTrace = new Error().stack;
-    return stackTrace.includes("async");
-  },
-});
+// Object.defineProperty(Promise.prototype, "isAwaited", {
+//   get() {
+//     const stackTrace = new Error().stack;
+//     return stackTrace.includes("async");
+//   },
+// });
 
 module.exports = { asyncErrorHandler, errorHandler };

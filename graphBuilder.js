@@ -1,5 +1,6 @@
 const { INTERNAL_REPO_IDENTIFIER } = require("./config");
 const { asyncErrorHandler } = require("./errorHandler");
+const logger = require("./logger");
 
 // Count internal dependencies
 function countDependencies(repoDependencies) {
@@ -22,9 +23,9 @@ function countDependencies(repoDependencies) {
 
 // Create graph data from dependencies
 function createGraphData(repoDependencies, dependencyCount) {
-  console.log("Creating graph data...");
-  console.log("Input repoDependencies:", repoDependencies);
-  console.log("Input dependencyCount:", dependencyCount);
+  logger.info("Creating graph data...");
+  logger.info("Input repoDependencies:", repoDependencies);
+  logger.info("Input dependencyCount:", dependencyCount);
 
   const nodes = [];
   const links = [];
@@ -56,16 +57,16 @@ function createGraphData(repoDependencies, dependencyCount) {
     });
   }
 
-  console.log("Output nodes:", nodes);
-  console.log("Output links:", links);
+  logger.info("Output nodes:", nodes);
+  logger.info("Output links:", links);
 
   return { nodes, links };
 }
 
-const asyncCountDependencies = asyncErrorHandler(countDependencies);
 const asyncCreateGraphData = asyncErrorHandler(createGraphData);
 
 module.exports = {
-  countDependencies: asyncCountDependencies,
+  countDependencies,
   createGraphData: asyncCreateGraphData,
+  createGraphData, // For tests only
 };

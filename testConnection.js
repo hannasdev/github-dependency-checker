@@ -4,9 +4,9 @@ const { asyncErrorHandler } = require("./errorHandler");
 const logger = require("./logger");
 const { GITHUB_API_URL, ORG_NAME, TOKEN } = require("./config");
 
-console.log("ORG_NAME:", ORG_NAME);
-console.log("TOKEN:", TOKEN ? "Loaded" : "Not Loaded");
-console.log("TOKEN Length:", TOKEN.length);
+logger.log("ORG_NAME:", ORG_NAME);
+logger.log("TOKEN:", TOKEN ? "Loaded" : "Not Loaded");
+logger.log("TOKEN Length:", TOKEN.length);
 
 const headers = {
   Authorization: `token ${TOKEN}`,

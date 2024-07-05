@@ -16,10 +16,10 @@ async function main() {
   logger.info(`Fetched ${repos.length} repositories`);
 
   const repoDependencies = await asyncProcessRepos(repos);
-  console.log("Repo dependencies:", repoDependencies);
+  logger.log("Repo dependencies:", repoDependencies);
 
   const dependencyCount = await asyncCountDependencies(repoDependencies);
-  console.log("Dependency count:", dependencyCount);
+  logger.log("Dependency count:", dependencyCount);
 
   logger.info("Dependency count calculated");
 
@@ -27,7 +27,7 @@ async function main() {
     repoDependencies,
     dependencyCount
   );
-  console.log("Graph data created:", graphData);
+  logger.log("Graph data created:", graphData);
 
   await asyncSaveDependencies(graphData);
 
