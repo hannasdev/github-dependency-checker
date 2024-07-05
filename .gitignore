@@ -1,1 +1,2 @@
 *.log
+/shared/data/dependencies.json
