@@ -4,6 +4,7 @@ import * as minimatch from "minimatch";
 import { GITHUB_API_URL, ORG_NAME, TOKEN, LIMIT } from "./config.js";
 import { asyncGetCachedContent, asyncSetCachedContent } from "./cache.js";
 import { asyncErrorHandler } from "./errorHandler.js";
+import { githubApiRequest } from "./githubApiRequest.js";
 import logger from "./logger.js";
 
 // HTTP Headers
@@ -13,58 +14,70 @@ const headers = {
   Accept: "application/vnd.github.v3+json",
 };
 
-// Options for GitHub API request
-const options = {
-  hostname: GITHUB_API_URL,
-  path: `/orgs/${ORG_NAME}/repos?per_page=${LIMIT}`,
-  method: "GET",
-  headers: headers,
-};
-
-// Fetch Repositories from GitHub
 async function fetchRepos() {
-  return new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
-      let data = "";
-      logger.info(`Status Code: ${res.statusCode}`);
+  let allRepos = [];
+  let page = 1;
+  const per_page = 100; // GitHub's max per page
 
-      res.on("data", (chunk) => {
-        data += chunk;
+  while (true) {
+    const pageOptions = {
+      hostname: GITHUB_API_URL,
+      path: `/orgs/${ORG_NAME}/repos?per_page=${per_page}&page=${page}`,
+      method: "GET",
+      headers: {
+        Authorization: `token ${TOKEN}`,
+        "User-Agent": "Node.js",
+        Accept: "application/vnd.github.v3+json",
+      },
+    };
+
+    try {
+      const pageRepos = await new Promise((resolve, reject) => {
+        const req = https.request(pageOptions, (res) => {
+          let data = "";
+          res.on("data", (chunk) => {
+            data += chunk;
+          });
+          res.on("end", () => {
+            if (res.statusCode === 200) {
+              resolve(JSON.parse(data));
+            } else {
+              reject(
+                new Error(
+                  `GitHub API responded with status code ${res.statusCode}: ${data}`
+                )
+              );
+            }
+          });
+        });
+
+        req.on("error", (e) =>
+          reject(new Error(`Request failed: ${e.message}`))
+        );
+        req.end();
       });
 
-      res.on("end", () => {
-        if (res.statusCode === 200) {
-          try {
-            const repos = JSON.parse(data);
-            logger.info("Repositories fetched:", repos.length);
-            resolve(repos);
-          } catch (error) {
-            logger.error("Error parsing data:", error);
-            reject(
-              new Error(`Failed to parse repository data: ${error.message}`)
-            );
-          }
-        } else {
-          reject(
-            new Error(
-              `GitHub API responded with status code ${res.statusCode}: ${data}`
-            )
-          );
-        }
-      });
-    });
+      if (pageRepos.length === 0) {
+        break; // No more repos to fetch
+      }
 
-    req.on("error", (e) => {
-      reject(new Error(`Request failed: ${e.message}`));
-    });
+      allRepos = allRepos.concat(pageRepos);
+      logger.info(`Fetched ${allRepos.length} repositories so far...`);
 
-    req.setTimeout(30000, () => {
-      req.destroy();
-      reject(new Error("Request timed out"));
-    });
+      if (allRepos.length >= LIMIT) {
+        allRepos = allRepos.slice(0, LIMIT);
+        break;
+      }
 
-    req.end();
-  });
+      page++;
+    } catch (error) {
+      logger.error("Error fetching repositories:", error);
+      throw error;
+    }
+  }
+
+  logger.info(`Total repositories fetched: ${allRepos.length}`);
+  return allRepos;
 }
 
 // Get content of a file from a repository
@@ -146,49 +159,15 @@ async function getDirectoryContents(repo, path) {
     },
   };
 
-  return new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
-      let data = "";
-
-      res.on("data", (chunk) => {
-        data += chunk;
-      });
-
-      res.on("end", () => {
-        if (res.statusCode === 200) {
-          try {
-            const contents = JSON.parse(data);
-            resolve(contents);
-          } catch (error) {
-            reject(
-              new Error(`Failed to parse directory contents: ${error.message}`)
-            );
-          }
-        } else if (res.statusCode === 404) {
-          resolve(null); // Directory not found, but not a critical error
-        } else {
-          reject(
-            new Error(`GitHub API responded with status code ${res.statusCode}`)
-          );
-        }
-      });
-    });
-
-    req.on("error", (e) => {
-      reject(new Error(`Request failed: ${e.message}`));
-    });
-
-    req.setTimeout(30000, () => {
-      req.destroy();
-      reject(
-        new Error(
-          `Request timed out for directory contents of ${path} in ${repo}`
-        )
-      );
-    });
-
-    req.end();
-  });
+  try {
+    const contents = await githubApiRequest(options);
+    return contents;
+  } catch (error) {
+    if (error.message.includes("status code 404")) {
+      return null; // Directory not found, but not a critical error
+    }
+    throw error;
+  }
 }
 
 async function getMatchingDirectories(repoName, pattern) {

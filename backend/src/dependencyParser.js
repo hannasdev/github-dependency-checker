@@ -16,25 +16,42 @@ const DEPENDENCY_FILES = [
   "Gemfile",
   "pom.xml",
 ];
+const DELAY_MS = 250; // Helps mitigate rate limits.
 
-async function processRepos(repos, maxDepth, concurrency = 10) {
+async function processRepos(repos, maxDepth, concurrency = 2) {
   const repoDependencies = {};
   const limit = pLimit(concurrency);
-  const bar = new ProgressBar("Processing repositories [:bar] :percent :etas", {
-    complete: "=",
-    incomplete: " ",
-    width: 20,
-    total: repos.length,
-  });
 
-  const promises = repos.map((repo) =>
-    limit(async () => {
-      repoDependencies[repo.name] = await scanRepository(repo.name, maxDepth);
-      bar.tick();
-    })
+  const bar = new ProgressBar(
+    "Processing repositories [:bar] :current/:total :percent :etas",
+    {
+      complete: "=",
+      incomplete: " ",
+      width: 20,
+      total: repos.length,
+    }
   );
 
-  await Promise.all(promises);
+  for (let i = 0; i < repos.length; i++) {
+    const repo = repos[i];
+    try {
+      repoDependencies[repo.name] = await limit(() =>
+        scanRepository(repo.name, maxDepth)
+      );
+      bar.tick();
+      logger.info(`Processed ${i + 1}/${repos.length} repositories`);
+
+      // Add a delay between repository processing
+      if (i < repos.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, DELAY_MS)); // 1 second delay
+      }
+    } catch (error) {
+      logger.error(`Error processing repository ${repo.name}:`, error);
+      // Tick the progress bar even if there's an error
+      bar.tick();
+      // Continue with the next repository instead of stopping the entire process
+    }
+  }
 
   return repoDependencies;
 }
