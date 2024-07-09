@@ -34,11 +34,9 @@ async function fetchRepos() {
       });
 
       res.on("end", () => {
-        // logger.info("Raw response data:", data);
         if (res.statusCode === 200) {
           try {
             const repos = JSON.parse(data);
-            // logger.info("Parsed repositories:", repos);
             logger.info("Repositories fetched:", repos.length);
             resolve(repos);
           } catch (error) {
@@ -62,7 +60,7 @@ async function fetchRepos() {
     });
 
     req.setTimeout(30000, () => {
-      req.abort();
+      req.destroy();
       reject(new Error("Request timed out"));
     });
 
@@ -95,13 +93,11 @@ async function getFileContent(repo, filePath) {
       fileRes.on("end", async () => {
         if (fileRes.statusCode === 304) {
           // Content hasn't changed, use cached data
-          // console.log(`Using cached content for ${filePath} from ${repo}`);
           resolve(cachedData.content);
         } else if (fileRes.statusCode === 200) {
           try {
             const parsedData = JSON.parse(fileData);
             if (parsedData.content) {
-              // console.log(`Fetched ${filePath} from ${repo}`);
               await asyncSetCachedContent(
                 repo,
                 filePath,
@@ -134,7 +130,7 @@ async function getFileContent(repo, filePath) {
     });
 
     fileReq.setTimeout(30000, () => {
-      fileReq.abort();
+      fileReq.destroy();
       reject(new Error(`Request timed out for ${filePath} in ${repo}`));
     });
 
@@ -142,13 +138,73 @@ async function getFileContent(repo, filePath) {
   });
 }
 
+async function getDirectoryContents(repo, path) {
+  const options = {
+    hostname: GITHUB_API_URL,
+    path: `/repos/${ORG_NAME}/${repo}/contents/${path}`,
+    method: "GET",
+    headers: {
+      Authorization: `token ${TOKEN}`,
+      "User-Agent": "Node.js",
+      Accept: "application/vnd.github.v3+json",
+    },
+  };
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      let data = "";
+
+      res.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      res.on("end", () => {
+        if (res.statusCode === 200) {
+          try {
+            const contents = JSON.parse(data);
+            resolve(contents);
+          } catch (error) {
+            reject(
+              new Error(`Failed to parse directory contents: ${error.message}`)
+            );
+          }
+        } else if (res.statusCode === 404) {
+          resolve(null); // Directory not found, but not a critical error
+        } else {
+          reject(
+            new Error(`GitHub API responded with status code ${res.statusCode}`)
+          );
+        }
+      });
+    });
+
+    req.on("error", (e) => {
+      reject(new Error(`Request failed: ${e.message}`));
+    });
+
+    req.setTimeout(30000, () => {
+      req.destroy();
+      reject(
+        new Error(
+          `Request timed out for directory contents of ${path} in ${repo}`
+        )
+      );
+    });
+
+    req.end();
+  });
+}
+
 // Wrap the async functions with asyncErrorHandler
 const asyncFetchRepos = asyncErrorHandler(fetchRepos);
 const asyncGetFileContent = asyncErrorHandler(getFileContent);
+const asyncGetDirectoryContents = asyncErrorHandler(getDirectoryContents);
 
 module.exports = {
   fetchRepos: asyncFetchRepos,
   fetchRepos, // For test only
   getFileContent: asyncGetFileContent,
   getFileContent, // for test only
+  getDirectoryContents: asyncGetDirectoryContents,
+  getDirectoryContents, // for test only
 };
