@@ -1,75 +1,80 @@
 import "./styles/styles.css";
 import { GraphRenderer } from "./utils/graphRenderer.js";
 import { DataLoader } from "./utils/dataLoader.js";
-
-const graphContainer = document.getElementById("graphContainer");
-const searchInput = document.getElementById("nodeNameInput");
-const searchButton = document.getElementById("searchButton");
-const zoomInButton = document.getElementById("zoomIn");
-const zoomOutButton = document.getElementById("zoomOut");
-const resetZoomButton = document.getElementById("resetZoom");
-
+import { createLegend } from "./utils/legendUtils.js";
 let graphRenderer;
 
-async function init() {
+export async function init() {
   const dataLoader = new DataLoader();
-  const data = await dataLoader.loadData("../../shared/data/dependencies.json");
+  const loadingElement = document.getElementById("loading");
 
-  document.getElementById("loading").style.display = "none";
+  try {
+    // Show "Loading...""
+    if (loadingElement) loadingElement.style.display = "block";
 
-  graphRenderer = new GraphRenderer(graphContainer, data);
-  graphRenderer.render();
+    const data = await dataLoader.loadData();
+    console.log("Data loaded:", data);
 
-  setupEventListeners();
-  createLegend(data);
+    const graphContainer = document.getElementById("graphContainer");
+    if (!graphContainer) {
+      throw new Error("Graph container element not found");
+    }
+
+    graphRenderer = new GraphRenderer(graphContainer, data);
+    if (!graphRenderer) {
+      throw new Error("Failed to create GraphRenderer instance");
+    }
+    graphRenderer.render();
+    createLegend(data);
+    setupEventListeners();
+
+    // Hide "Loading...""
+    if (loadingElement) loadingElement.style.display = "none";
+  } catch (error) {
+    console.error("Failed to load data:", error.message);
+    console.error("Error stack:", error.stack);
+    if (loadingElement) {
+      loadingElement.textContent = "Error loading data. Please try again.";
+    }
+  }
 }
 
-function setupEventListeners() {
-  searchButton.addEventListener("click", () =>
-    graphRenderer.centerOnNode(searchInput.value)
-  );
-  zoomInButton.addEventListener("click", () => graphRenderer.zoom(1.2));
-  zoomOutButton.addEventListener("click", () => graphRenderer.zoom(0.8));
-  resetZoomButton.addEventListener("click", () => graphRenderer.resetZoom());
-}
+export function setupEventListeners(graphRenderer) {
+  const searchInput = document.getElementById("nodeNameInput");
+  const searchButton = document.getElementById("searchButton");
+  const zoomInButton = document.getElementById("zoomIn");
+  const zoomOutButton = document.getElementById("zoomOut");
+  const resetZoomButton = document.getElementById("resetZoom");
 
-function createLegend(data) {
-  const legend = document.getElementById("legend");
-  legend.innerHTML = ""; // Clear any existing content
+  if (searchButton) {
+    searchButton.addEventListener("click", () => {
+      const nodeName = searchInput ? searchInput.value : "";
+      if (graphRenderer) {
+        graphRenderer.centerOnNode(nodeName);
+      } else {
+        console.error("GraphRenderer is not initialized");
+      }
+    });
+  }
 
-  const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+  const handlers = {
+    onSearch: (value) => {
+      if (graphRenderer) {
+        graphRenderer.centerOnNode(value);
+      } else {
+        console.error("GraphRenderer is not initialized");
+      }
+    },
+    onZoomIn: () => graphRenderer && graphRenderer.zoom(1.2),
+    onZoomOut: () => graphRenderer && graphRenderer.zoom(0.8),
+    onResetZoom: () => graphRenderer && graphRenderer.resetZoom(),
+  };
 
-  // Get unique depth values
-  const uniqueDepths = [...new Set(data.nodes.map((node) => node.depth))].sort(
-    (a, b) => a - b
-  );
+  zoomInButton.addEventListener("click", handlers.onZoomIn);
+  zoomOutButton.addEventListener("click", handlers.onZoomOut);
+  resetZoomButton.addEventListener("click", handlers.onResetZoom);
 
-  // Create legend items
-  uniqueDepths.forEach((depth) => {
-    const item = document.createElement("div");
-    item.style.display = "flex";
-    item.style.alignItems = "center";
-    item.style.marginBottom = "5px";
-
-    const colorBox = document.createElement("div");
-    colorBox.style.width = "20px";
-    colorBox.style.height = "20px";
-    colorBox.style.backgroundColor = colorScale(depth);
-    colorBox.style.marginRight = "5px";
-
-    const label = document.createElement("span");
-    label.textContent = `Depth ${depth}`;
-
-    item.appendChild(colorBox);
-    item.appendChild(label);
-    legend.appendChild(item);
-  });
-
-  // Add information about node size
-  const sizeInfo = document.createElement("div");
-  sizeInfo.style.marginTop = "10px";
-  sizeInfo.textContent = "Node size represents dependency count";
-  legend.appendChild(sizeInfo);
+  return handlers;
 }
 
 init();

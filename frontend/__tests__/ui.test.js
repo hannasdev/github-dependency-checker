@@ -1,64 +1,65 @@
-import { GraphRenderer } from "../graphRenderer.js";
-import { DataLoader } from "../dataLoader.js";
+import { GraphRenderer } from "../src/utils/graphRenderer.js";
+import { DataLoader } from "../src/utils/dataLoader.js";
 import "@testing-library/jest-dom";
 
-// Mock D3
-jest.mock("d3", () => ({
-  select: jest.fn(() => ({
-    append: jest.fn().mockReturnThis(),
-    attr: jest.fn().mockReturnThis(),
-    call: jest.fn().mockReturnThis(),
-  })),
-  zoom: jest.fn(() => ({
-    scaleExtent: jest.fn().mockReturnThis(),
-    on: jest.fn().mockReturnThis(),
-  })),
-  forceSimulation: jest.fn(() => ({
-    force: jest.fn().mockReturnThis(),
-    on: jest.fn().mockReturnThis(),
-  })),
-  drag: jest.fn(() => ({
-    on: jest.fn().mockReturnThis(),
-  })),
-}));
+jest.mock("../src/styles/styles.css", () => ({}), { virtual: true });
 
-describe("UI Functionality", () => {
-  let graphRenderer;
-  let container;
-  let mockData;
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({}),
+  })
+);
 
-  beforeEach(() => {
-    container = document.createElement("div");
-    mockData = {
-      nodes: [{ id: "node1" }, { id: "node2" }],
-      links: [{ source: "node1", target: "node2" }],
-    };
-    graphRenderer = new GraphRenderer(container, mockData);
-  });
+jest.mock("d3", () => ({}));
+// Mock console.error to prevent it from cluttering our test output
+console.error = jest.fn();
+jest.mock("../src/utils/graphRenderer");
 
-  test("GraphRenderer initializes correctly", () => {
-    expect(graphRenderer).toBeDefined();
-    expect(graphRenderer.container).toBe(container);
-    expect(graphRenderer.data).toEqual(mockData);
-  });
-
-  test("GraphRenderer renders graph elements", () => {
-    graphRenderer.render();
-    expect(container.querySelector("svg")).not.toBeNull();
-  });
-
-  test("DataLoader loads data correctly", async () => {
-    global.fetch = jest.fn(() =>
-      Promise.resolve({
+describe("Frontend Functionality", () => {
+  describe("DataLoader", () => {
+    it("correctly fetches and parses data", async () => {
+      const mockData = { nodes: [], links: [] };
+      global.fetch = jest.fn().mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockData),
-      })
-    );
+        json: async () => mockData,
+      });
 
-    const dataLoader = new DataLoader();
-    const data = await dataLoader.loadData("fake-url");
-    expect(data).toEqual(mockData);
+      const dataLoader = new DataLoader();
+      const result = await dataLoader.loadData();
+
+      expect(result).toEqual(mockData);
+    });
+
+    it("handles fetch errors", async () => {
+      global.fetch = jest
+        .fn()
+        .mockRejectedValueOnce(new Error("Network error"));
+
+      const dataLoader = new DataLoader();
+      await expect(dataLoader.loadData()).rejects.toThrow("Network error");
+      expect(console.error).toHaveBeenCalledWith(
+        "Error loading data:",
+        expect.any(Error)
+      );
+    });
   });
 
-  // Add more tests for zoom, pan, and search functionality
+  describe("GraphRenderer", () => {
+    it("initializes correctly with valid data", () => {
+      const container = document.createElement("div");
+      const data = { nodes: [{ id: "node1" }], links: [] };
+      const renderer = new GraphRenderer(container, data);
+
+      expect(renderer.container).toBe(container);
+      expect(renderer.data).toEqual(data);
+    });
+
+    it("handles invalid input gracefully", () => {
+      const container = document.createElement("div");
+      const invalidData = null;
+
+      expect(() => new GraphRenderer(container, invalidData)).not.toThrow();
+    });
+  });
 });

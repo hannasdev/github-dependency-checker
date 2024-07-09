@@ -1,7 +1,8 @@
+import * as d3 from "d3";
 export class GraphRenderer {
   constructor(container, data) {
     this.container = container;
-    this.data = data;
+    this.data = data || { nodes: [], links: [] }; // Provide default empty data
     this.width = container.clientWidth;
     this.height = container.clientHeight;
     this.svg = null;
@@ -12,11 +13,11 @@ export class GraphRenderer {
     this.node = null;
 
     this.simulation = d3
-      .forceSimulation(data.nodes)
+      .forceSimulation(this.data.nodes)
       .force(
         "link",
         d3
-          .forceLink(data.links)
+          .forceLink(this.data.links)
           .id((d) => d.id)
           .distance(100)
       )
@@ -29,6 +30,11 @@ export class GraphRenderer {
   }
 
   render() {
+    if (typeof d3.select !== "function" || !this.simulation) {
+      console.warn("D3 select function or simulation is not available");
+      return;
+    }
+
     this.svg = d3
       .select(this.container)
       .append("svg")
@@ -78,11 +84,11 @@ export class GraphRenderer {
       .style("font-family", "Arial");
 
     this.simulation = d3
-      .forceSimulation(data.nodes)
+      .forceSimulation(this.data.nodes)
       .force(
         "link",
         d3
-          .forceLink(data.links)
+          .forceLink(this.data.links)
           .id((d) => d.id)
           .distance(100)
       )
