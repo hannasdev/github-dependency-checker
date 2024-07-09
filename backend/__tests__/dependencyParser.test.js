@@ -1,5 +1,5 @@
-const { processRepos, parseDependencies } = require("../src/dependencyParser");
-const { getFileContent } = require("../src/api");
+import { processRepos, parseDependencies } from "../src/dependencyParser";
+import { getFileContent } from "../src/api";
 
 jest.mock("../src/api");
 jest.mock("winston");

@@ -1,7 +1,13 @@
-const ProgressBar = require("progress");
-const { getFileContent, getDirectoryContents } = require("./api");
-const { asyncErrorHandler } = require("./errorHandler");
-const logger = require("./logger");
+import ProgressBar from "progress";
+import path from "path";
+import pLimit from "p-limit";
+import {
+  asyncGetFileContent,
+  asyncGetDirectoryContents,
+  asyncGetMatchingDirectories,
+} from "./api.js";
+import { asyncErrorHandler } from "./errorHandler.js";
+import logger from "./logger.js";
 
 const MONOREPO_FOLDERS = ["applications", "packages", "services"];
 const DEPENDENCY_FILES = [
@@ -11,8 +17,9 @@ const DEPENDENCY_FILES = [
   "pom.xml",
 ];
 
-async function processRepos(repos, maxDepth) {
+async function processRepos(repos, maxDepth, concurrency = 10) {
   const repoDependencies = {};
+  const limit = pLimit(concurrency);
   const bar = new ProgressBar("Processing repositories [:bar] :percent :etas", {
     complete: "=",
     incomplete: " ",
@@ -20,56 +27,107 @@ async function processRepos(repos, maxDepth) {
     total: repos.length,
   });
 
-  for (const repo of repos) {
-    repoDependencies[repo.name] = await scanRepository(repo.name, maxDepth);
-    bar.tick();
-  }
+  const promises = repos.map((repo) =>
+    limit(async () => {
+      repoDependencies[repo.name] = await scanRepository(repo.name, maxDepth);
+      bar.tick();
+    })
+  );
+
+  await Promise.all(promises);
 
   return repoDependencies;
 }
 
 async function scanRepository(repoName, maxDepth = 2) {
-  const allDependencies = [];
+  const allDependencies = new Set();
 
-  // Scan root level
-  for (const file of DEPENDENCY_FILES) {
-    const dependencies = await scanDependencyFile(repoName, file);
-    allDependencies.push(...dependencies);
-  }
+  try {
+    const lernaConfig = await asyncGetFileContent(repoName, "lerna.json");
 
-  // Recursive function to scan directories
-  async function scanDirectory(path, currentDepth) {
-    if (currentDepth > maxDepth) return;
+    if (lernaConfig) {
+      const config = JSON.parse(
+        Buffer.from(lernaConfig, "base64").toString("utf-8")
+      );
+      const packagePatterns = config.packages || ["packages/*"];
 
-    const contents = await getDirectoryContents(repoName, path);
-    if (contents && Array.isArray(contents)) {
-      for (const item of contents) {
-        if (item.type === "dir") {
-          const newPath = `${path}/${item.name}`;
-          // Scan dependency files in this directory
+      for (const pattern of packagePatterns) {
+        const packageDirs = await asyncGetMatchingDirectories(
+          repoName,
+          pattern
+        );
+        for (const dir of packageDirs) {
           for (const file of DEPENDENCY_FILES) {
-            const filePath = `${newPath}/${file}`;
+            const filePath = path.join(dir, file);
             const dependencies = await scanDependencyFile(repoName, filePath);
-            allDependencies.push(...dependencies);
+            dependencies.forEach((dep) => allDependencies.add(dep));
           }
-          // Recursively scan subdirectories
-          await scanDirectory(newPath, currentDepth + 1);
         }
       }
+    } else {
+      await fallbackScan(repoName, maxDepth, allDependencies);
     }
+  } catch (error) {
+    logger.error(`Error scanning Lerna config for ${repoName}:`, error);
+    await fallbackScan(repoName, maxDepth, allDependencies);
   }
 
-  // Scan potential monorepo folders
-  for (const folder of MONOREPO_FOLDERS) {
-    await scanDirectory(folder, 1);
-  }
+  return Array.from(allDependencies);
+}
 
-  return [...new Set(allDependencies)]; // Remove duplicates
+async function fallbackScan(repoName, maxDepth, allDependencies) {
+  await Promise.all(
+    DEPENDENCY_FILES.map(async (file) => {
+      const dependencies = await scanDependencyFile(repoName, file);
+      dependencies.forEach((dep) => allDependencies.add(dep));
+    })
+  );
+
+  await Promise.all(
+    MONOREPO_FOLDERS.map((folder) =>
+      scanDirectory(repoName, folder, 1, maxDepth, allDependencies)
+    )
+  );
+}
+
+async function scanDirectory(
+  repoName,
+  dirPath,
+  currentDepth,
+  maxDepth,
+  allDependencies
+) {
+  if (currentDepth > maxDepth) return;
+
+  const contents = await asyncGetDirectoryContents(repoName, dirPath);
+  if (contents && Array.isArray(contents)) {
+    await Promise.all(
+      contents.map(async (item) => {
+        if (item.type === "dir") {
+          const newPath = path.join(dirPath, item.name);
+          await Promise.all(
+            DEPENDENCY_FILES.map(async (file) => {
+              const filePath = path.join(newPath, file);
+              const dependencies = await scanDependencyFile(repoName, filePath);
+              dependencies.forEach((dep) => allDependencies.add(dep));
+            })
+          );
+          await scanDirectory(
+            repoName,
+            newPath,
+            currentDepth + 1,
+            maxDepth,
+            allDependencies
+          );
+        }
+      })
+    );
+  }
 }
 
 async function scanDependencyFile(repoName, filePath) {
   try {
-    const fileContent = await getFileContent(repoName, filePath);
+    const fileContent = await asyncGetFileContent(repoName, filePath);
     if (fileContent) {
       return parseDependencies(filePath, fileContent);
     }
@@ -83,7 +141,7 @@ function parseDependencies(fileName, fileContent) {
   const content = Buffer.from(fileContent, "base64").toString("utf-8");
   let dependencies = [];
 
-  switch (fileName.split("/").pop()) {
+  switch (path.basename(fileName)) {
     case "package.json":
       const json = JSON.parse(content);
       dependencies = [
@@ -119,10 +177,6 @@ function parseDependencies(fileName, fileContent) {
   return dependencies;
 }
 
-const asyncProcessRepos = asyncErrorHandler(processRepos);
+export const asyncProcessRepos = asyncErrorHandler(processRepos);
 
-module.exports = {
-  processRepos: asyncProcessRepos,
-  scanRepository,
-  parseDependencies,
-};
+export { processRepos, scanRepository, parseDependencies };

@@ -1,13 +1,13 @@
-const {
-  countDependencies: asyncCountDependencies,
-  createGraphData: asyncCreateGraphData,
-} = require("./graphBuilder");
-const { saveDependencies: asyncSaveDependencies } = require("./fileUtils");
-const { fetchRepos: asyncFetchRepos } = require("./api");
-const { processRepos: asyncProcessRepos } = require("./dependencyParser");
-const { LIMIT } = require("./config");
-const logger = require("./logger");
-const { asyncErrorHandler } = require("./errorHandler");
+import { asyncProcessRepos } from "./dependencyParser.js";
+import { asyncFetchRepos } from "./api.js";
+import { LIMIT } from "./config.js";
+import logger from "./logger.js";
+import { asyncErrorHandler } from "./errorHandler.js";
+import {
+  asyncCountDependencies,
+  asyncCreateGraphData,
+} from "./graphBuilder.js";
+import { asyncSaveDependencies } from "./fileUtils.js";
 
 async function main() {
   logger.info("Starting dependency analysis");
@@ -15,29 +15,26 @@ async function main() {
   const repos = await asyncFetchRepos(LIMIT);
   logger.info(`Fetched ${repos.length} repositories`);
 
-  const repoDependencies = await asyncProcessRepos(repos, 3);
-  // logger.info("Repo dependencies:", repoDependencies);
+  const repoDependencies = await asyncProcessRepos(repos, 3, 20); // Using 20 for concurrency
+  logger.info("Dependencies processed");
 
   const dependencyCount = await asyncCountDependencies(repoDependencies);
-  // logger.info("Dependency count:", dependencyCount);
-
-  logger.info("Dependency count calculated");
+  logger.info("Dependencies counted");
 
   const graphData = await asyncCreateGraphData(
     repoDependencies,
     dependencyCount
   );
-  // logger.info("Graph data created:", graphData);
+  logger.info("Graph data created");
 
   await asyncSaveDependencies(graphData);
+  logger.info("Graph data saved");
 
   logger.info("Dependency analysis completed successfully");
 }
 
 const asyncMain = asyncErrorHandler(main);
 
-if (require.main === module) {
-  asyncMain();
-}
+asyncMain();
 
-module.exports = { main: asyncMain };
+export { main as default };

@@ -1,8 +1,10 @@
-require("dotenv").config();
-const axios = require("axios");
-const { asyncErrorHandler } = require("./errorHandler");
-const logger = require("./logger");
-const { GITHUB_API_URL, ORG_NAME, TOKEN } = require("./config");
+import dotenv from "dotenv";
+import axios from "axios";
+import { asyncErrorHandler } from "./errorHandler.js";
+import logger from "./logger.js";
+import { GITHUB_API_URL, ORG_NAME, TOKEN } from "./config.js";
+
+dotenv.config();
 
 logger.log("ORG_NAME:", ORG_NAME);
 logger.log("TOKEN:", TOKEN ? "Loaded" : "Not Loaded");
@@ -33,4 +35,4 @@ if (require.main === module) {
   asyncTestConnection();
 }
 
-module.exports = { testConnection: asyncTestConnection };
+export { asyncTestConnection };

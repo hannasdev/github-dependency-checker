@@ -1,6 +1,6 @@
-const nock = require("nock");
-const { fetchRepos, getFileContent } = require("../src/api");
-const { GITHUB_API_URL, ORG_NAME } = require("../src/config");
+import nock from "nock";
+import { fetchRepos, getFileContent } from "../src/api";
+import { GITHUB_API_URL, ORG_NAME } from "../src/config";
 
 jest.mock("../src/config", () => ({
   GITHUB_API_URL: "api.github.com",

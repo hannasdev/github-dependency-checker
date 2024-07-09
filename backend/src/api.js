@@ -1,11 +1,10 @@
-const https = require("https");
-const { GITHUB_API_URL, ORG_NAME, TOKEN, LIMIT } = require("./config");
-const {
-  getCachedContent: asyncGetCachedContent,
-  setCachedContent: asyncSetCachedContent,
-} = require("./cache");
-const { asyncErrorHandler } = require("./errorHandler");
-const logger = require("./logger");
+import https from "https";
+import path from "path";
+import * as minimatch from "minimatch";
+import { GITHUB_API_URL, ORG_NAME, TOKEN, LIMIT } from "./config.js";
+import { asyncGetCachedContent, asyncSetCachedContent } from "./cache.js";
+import { asyncErrorHandler } from "./errorHandler.js";
+import logger from "./logger.js";
 
 // HTTP Headers
 const headers = {
@@ -70,17 +69,19 @@ async function fetchRepos() {
 
 // Get content of a file from a repository
 async function getFileContent(repo, filePath) {
+  const cacheKey = `${repo}:${filePath}`;
+  const cachedData = await asyncGetCachedContent(cacheKey);
+
+  if (cachedData) {
+    return cachedData.content;
+  }
+
   const fileOptions = {
     hostname: GITHUB_API_URL,
     path: `/repos/${ORG_NAME}/${repo}/contents/${filePath}`,
     method: "GET",
     headers: { ...headers },
   };
-
-  const cachedData = await asyncGetCachedContent(repo, filePath);
-  if (cachedData && cachedData.etag) {
-    fileOptions.headers["If-None-Match"] = cachedData.etag;
-  }
 
   return new Promise((resolve, reject) => {
     const fileReq = https.request(fileOptions, (fileRes) => {
@@ -91,19 +92,14 @@ async function getFileContent(repo, filePath) {
       });
 
       fileRes.on("end", async () => {
-        if (fileRes.statusCode === 304) {
-          // Content hasn't changed, use cached data
-          resolve(cachedData.content);
-        } else if (fileRes.statusCode === 200) {
+        if (fileRes.statusCode === 200) {
           try {
             const parsedData = JSON.parse(fileData);
             if (parsedData.content) {
-              await asyncSetCachedContent(
-                repo,
-                filePath,
-                parsedData.content,
-                fileRes.headers.etag
-              );
+              await asyncSetCachedContent(cacheKey, {
+                content: parsedData.content,
+                etag: fileRes.headers.etag,
+              });
               resolve(parsedData.content);
             } else {
               reject(new Error(`No content found for ${filePath} in ${repo}`));
@@ -195,16 +191,42 @@ async function getDirectoryContents(repo, path) {
   });
 }
 
-// Wrap the async functions with asyncErrorHandler
-const asyncFetchRepos = asyncErrorHandler(fetchRepos);
-const asyncGetFileContent = asyncErrorHandler(getFileContent);
-const asyncGetDirectoryContents = asyncErrorHandler(getDirectoryContents);
+async function getMatchingDirectories(repoName, pattern) {
+  const matchingDirs = [];
 
-module.exports = {
-  fetchRepos: asyncFetchRepos,
-  fetchRepos, // For test only
-  getFileContent: asyncGetFileContent,
-  getFileContent, // for test only
-  getDirectoryContents: asyncGetDirectoryContents,
-  getDirectoryContents, // for test only
-};
+  async function traverse(currentPath = "") {
+    try {
+      const contents = await getDirectoryContents(repoName, currentPath);
+
+      if (!contents || !Array.isArray(contents)) {
+        return;
+      }
+
+      for (const item of contents) {
+        if (item.type === "dir") {
+          const relativePath = path.join(currentPath, item.name);
+          if (minimatch.default(relativePath, pattern)) {
+            matchingDirs.push(relativePath);
+          }
+          await traverse(relativePath);
+        }
+      }
+    } catch (error) {
+      logger.error(`Error traversing ${currentPath} in ${repoName}:`, error);
+    }
+  }
+
+  await traverse();
+  return matchingDirs;
+}
+
+// Wrap the async functions with asyncErrorHandler
+export const asyncFetchRepos = asyncErrorHandler(fetchRepos);
+export const asyncGetFileContent = asyncErrorHandler(getFileContent);
+export const asyncGetDirectoryContents =
+  asyncErrorHandler(getDirectoryContents);
+export const asyncGetMatchingDirectories = asyncErrorHandler(
+  getMatchingDirectories
+);
+
+export { fetchRepos, getFileContent }; // for test only

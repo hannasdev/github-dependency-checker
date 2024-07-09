@@ -22,8 +22,8 @@ jest.mock("../src/config", () => ({
 
 jest.mock("winston");
 
-const fs = require("fs").promises;
-const cache = require("../src/cache");
+import fs from "fs";
+import cache from "../src/cache";
 
 describe("Cache module", () => {
   beforeEach(() => {
@@ -37,7 +37,7 @@ describe("Cache module", () => {
       timestamp: Date.now(),
     };
 
-    require("fs").existsSync.mockReturnValue(true);
+    fs.existsSync.mockReturnValue(true);
     fs.readFile.mockResolvedValue(JSON.stringify(mockCacheContent));
 
     const result = await cache.getCachedContent("repo1", "file1");
@@ -50,7 +50,7 @@ describe("Cache module", () => {
   });
 
   test("getCachedContent returns null if cache is not available", async () => {
-    require("fs").existsSync.mockReturnValue(false);
+    fs.existsSync.mockReturnValue(false);
 
     const result = await cache.getCachedContent("repo1", "file1");
 

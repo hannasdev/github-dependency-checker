@@ -1,7 +1,4 @@
-const {
-  _countDependencies: countDependencies,
-  _createGraphData: createGraphData,
-} = require("../src/graphBuilder");
+import { countDependencies, createGraphData } from "../src/graphBuilder";
 
 jest.mock("winston");
 jest.mock("../src/config", () => ({

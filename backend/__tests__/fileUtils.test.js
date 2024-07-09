@@ -1,5 +1,5 @@
-const fs = require("fs").promises;
-const { saveDependencies } = require("../src/fileUtils");
+import fs from "fs";
+import { saveDependencies } from "../src/fileUtils";
 
 jest.mock("winston");
 jest.mock("fs", () => ({

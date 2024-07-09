@@ -1,4 +1,4 @@
-const logger = require("./logger");
+import logger from "./logger.js";
 
 /**
  * Wraps an async function with error handling.
@@ -7,7 +7,7 @@ const logger = require("./logger");
  * @param {Function} fn - The function to wrap
  * @returns {Function} - A wrapped async function
  */
-function asyncErrorHandler(fn) {
+export function asyncErrorHandler(fn) {
   const wrappedFunction = async function (...args) {
     try {
       return await fn(...args);
@@ -26,7 +26,7 @@ function asyncErrorHandler(fn) {
  *
  * @param {Error} error - The error to handle
  */
-function errorHandler(error) {
+export function errorHandler(error) {
   logger.error("Error:", error);
   process.exit(1);
 }
@@ -38,5 +38,3 @@ function errorHandler(error) {
 //     return stackTrace.includes("async");
 //   },
 // });
-
-module.exports = { asyncErrorHandler, errorHandler };

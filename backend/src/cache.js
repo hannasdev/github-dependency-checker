@@ -1,8 +1,8 @@
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
-const { CACHE_DIR } = require("./config");
-const { asyncErrorHandler } = require("./errorHandler");
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
+import { CACHE_DIR } from "./config.js";
+import { asyncErrorHandler } from "./errorHandler.js";
 
 /// Ensure cache directory exists
 if (!fs.existsSync(CACHE_DIR)) {
@@ -37,12 +37,10 @@ async function setCachedContent(repo, filePath, content, etag) {
   await fs.promises.writeFile(cacheFile, cacheContent, "utf8");
 }
 
-const asyncGetCachedContent = asyncErrorHandler(getCachedContent);
-const asyncSetCachedContent = asyncErrorHandler(setCachedContent);
+export const asyncGetCachedContent = asyncErrorHandler(getCachedContent);
+export const asyncSetCachedContent = asyncErrorHandler(setCachedContent);
 
-module.exports = {
-  getCachedContent: asyncGetCachedContent,
+export {
   getCachedContent, // for test only
-  setCachedContent: asyncSetCachedContent,
   setCachedContent, // for test only
 };

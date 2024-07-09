@@ -1,6 +1,6 @@
-const { INTERNAL_REPO_IDENTIFIER } = require("./config");
-const { asyncErrorHandler } = require("./errorHandler");
-const logger = require("./logger");
+import { INTERNAL_REPO_IDENTIFIER } from "./config.js";
+import { asyncErrorHandler } from "./errorHandler.js";
+import logger from "./logger.js";
 
 // Count internal dependencies
 function countDependencies(repoDependencies) {
@@ -63,13 +63,7 @@ function createGraphData(repoDependencies, dependencyCount) {
   return { nodes, links };
 }
 
-const asyncCreateGraphData = asyncErrorHandler(createGraphData);
-const asyncCountDependencies = asyncErrorHandler(countDependencies);
+export const asyncCountDependencies = asyncErrorHandler(countDependencies);
+export const asyncCreateGraphData = asyncErrorHandler(createGraphData);
 
-module.exports = {
-  countDependencies: asyncCountDependencies,
-  createGraphData: asyncCreateGraphData,
-  // Export unwrapped functions for testing
-  _countDependencies: countDependencies,
-  _createGraphData: createGraphData,
-};
+export { countDependencies, createGraphData }; // for testing only

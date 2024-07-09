@@ -1,8 +1,8 @@
 require("dotenv").config();
 const https = require("https");
-const { asyncErrorHandler } = require("./errorHandler");
-const logger = require("./logger");
-const { GITHUB_API_URL, ORG_NAME, TOKEN } = require("./config");
+const { asyncErrorHandler } = require("./errorHandler.js");
+const logger = require("./logger.js");
+const { GITHUB_API_URL, ORG_NAME, TOKEN } = require("./config.js");
 
 logger.log("ORG_NAME:", ORG_NAME);
 logger.log("TOKEN:", TOKEN ? "Loaded" : "Not Loaded");
@@ -56,4 +56,4 @@ if (require.main === module) {
   asyncTestHttps();
 }
 
-module.exports = { testHttps: asyncTestHttps };
+export { asyncTestHttps };

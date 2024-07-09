@@ -1,11 +1,19 @@
-const path = require("path");
-require("dotenv").config();
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 
-module.exports = {
-  GITHUB_API_URL: "api.github.com",
-  ORG_NAME: process.env.ORG_NAME,
-  TOKEN: process.env.TOKEN,
-  LIMIT: 10,
-  INTERNAL_REPO_IDENTIFIER: process.env.REPO_IDENTIFIER,
-  CACHE_DIR: path.join(__dirname, ".cache"),
-};
+// Get the directory name of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config();
+
+export const GITHUB_API_URL = "api.github.com";
+export const ORG_NAME = process.env.ORG_NAME;
+export const TOKEN = process.env.TOKEN;
+export const LIMIT = 10;
+export const INTERNAL_REPO_IDENTIFIER = process.env.REPO_IDENTIFIER;
+export const CACHE_DIR = path.join(__dirname, "..", ".cache");
+
+// If you need to use __dirname in other parts of your code, you can export it
+export { __dirname };
