@@ -2,6 +2,7 @@ import "./styles/styles.css";
 import { GraphRenderer } from "./utils/graphRenderer.js";
 import { DataLoader } from "./utils/dataLoader.js";
 import { createLegend } from "./utils/legendUtils.js";
+import { eventEmitter } from "./utils/eventEmitter.js";
 
 let graphRenderer;
 
@@ -27,6 +28,7 @@ export async function init() {
     graphRenderer.render();
     createLegend(data);
     setupEventListeners();
+    setupGraphRendererListeners();
 
     if (loadingElement) loadingElement.style.display = "none";
   } catch (error) {
@@ -48,34 +50,35 @@ export function setupEventListeners() {
   if (searchButton) {
     searchButton.addEventListener("click", () => {
       const nodeName = searchInput ? searchInput.value : "";
-      if (graphRenderer) {
-        graphRenderer.centerOnNode(nodeName);
-      } else {
-        console.error("GraphRenderer is not initialized");
-      }
+      eventEmitter.emit("search", nodeName);
     });
   }
 
-  const handlers = {
-    onSearch: (value) => {
-      if (graphRenderer) {
-        graphRenderer.centerOnNode(value);
-      } else {
-        console.error("GraphRenderer is not initialized");
-      }
-    },
-    onZoomIn: () => graphRenderer && graphRenderer.zoom(1.2),
-    onZoomOut: () => graphRenderer && graphRenderer.zoom(0.8),
-    onResetZoom: () => graphRenderer && graphRenderer.resetZoom(),
-  };
-
-  if (zoomInButton) zoomInButton.addEventListener("click", handlers.onZoomIn);
+  if (zoomInButton)
+    zoomInButton.addEventListener("click", () => eventEmitter.emit("zoomIn"));
   if (zoomOutButton)
-    zoomOutButton.addEventListener("click", handlers.onZoomOut);
+    zoomOutButton.addEventListener("click", () => eventEmitter.emit("zoomOut"));
   if (resetZoomButton)
-    resetZoomButton.addEventListener("click", handlers.onResetZoom);
+    resetZoomButton.addEventListener("click", () =>
+      eventEmitter.emit("resetZoom")
+    );
+}
 
-  return handlers;
+function setupGraphRendererListeners() {
+  eventEmitter.on("search", (nodeName) => {
+    if (graphRenderer) {
+      graphRenderer.centerOnNode(nodeName);
+    } else {
+      console.error("GraphRenderer is not initialized");
+    }
+  });
+
+  eventEmitter.on("zoomIn", () => graphRenderer && graphRenderer.zoom(1.2));
+  eventEmitter.on("zoomOut", () => graphRenderer && graphRenderer.zoom(0.8));
+  eventEmitter.on(
+    "resetZoom",
+    () => graphRenderer && graphRenderer.resetZoom()
+  );
 }
 
 init();

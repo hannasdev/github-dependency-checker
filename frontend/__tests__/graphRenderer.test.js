@@ -1,7 +1,7 @@
 // __tests__/graphRenderer.test.js
 import { enableFetchMocks } from "jest-fetch-mock";
-import { GraphRenderer } from "../src/utils/graphRenderer";
 import { setupEventListeners } from "../src/index";
+import { eventEmitter } from "../src/utils/eventEmitter";
 
 enableFetchMocks();
 jest.mock("../src/utils/dataLoader");
@@ -12,8 +12,6 @@ jest.mock("../src/utils/legendUtils", () => ({
 }));
 
 describe("Event Handling", () => {
-  let graphRenderer;
-
   beforeEach(() => {
     fetch.resetMocks();
     fetch.mockResponseOnce(
@@ -21,8 +19,10 @@ describe("Event Handling", () => {
         /* mock data */
       })
     );
+
     document.body.innerHTML = `
-      <div id="graphContainer" style="width: 500px; height: 500px;"></div>
+      <div id="loading"></div>
+      <div id="graphContainer"></div>
       <input id="nodeNameInput" type="text">
       <button id="searchButton">Search</button>
       <button id="zoomIn">+</button>
@@ -31,44 +31,35 @@ describe("Event Handling", () => {
       <div id="legend"></div>
     `;
 
-    graphRenderer = new GraphRenderer(document.body, { nodes: [], links: [] });
-    graphRenderer.zoom = jest.fn();
-    graphRenderer.resetZoom = jest.fn();
-    handlers = setupEventListeners(graphRenderer);
+    setupEventListeners();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  test("triggers centerOnNode when search button is clicked", () => {
+  test("emits search event when search button is clicked", () => {
+    const emitSpy = jest.spyOn(eventEmitter, "emit");
     document.getElementById("nodeNameInput").value = "testNode";
     document.getElementById("searchButton").click();
-    expect(graphRenderer.centerOnNode).toHaveBeenCalledWith("testNode");
+    expect(emitSpy).toHaveBeenCalledWith("search", "testNode");
   });
 
-  test("triggers zoom in when zoom in button is clicked", () => {
+  test("emits zoomIn event when zoom in button is clicked", () => {
+    const emitSpy = jest.spyOn(eventEmitter, "emit");
     document.getElementById("zoomIn").click();
-    expect(graphRenderer.zoom).toHaveBeenCalledWith(1.2);
-    expect(graphRenderer.zoom).toHaveBeenCalledTimes(1);
+    expect(emitSpy).toHaveBeenCalledWith("zoomIn");
   });
 
-  test("triggers zoom out when zoom out button is clicked", () => {
+  test("emits zoomOut event when zoom out button is clicked", () => {
+    const emitSpy = jest.spyOn(eventEmitter, "emit");
     document.getElementById("zoomOut").click();
-    expect(graphRenderer.zoom).toHaveBeenCalledWith(0.8);
+    expect(emitSpy).toHaveBeenCalledWith("zoomOut");
   });
 
-  test("triggers resetZoom when reset zoom button is clicked", () => {
+  test("emits resetZoom event when reset zoom button is clicked", () => {
+    const emitSpy = jest.spyOn(eventEmitter, "emit");
     document.getElementById("resetZoom").click();
-    expect(graphRenderer.resetZoom).toHaveBeenCalled();
-  });
-
-  test("handles GraphRenderer not being initialized", () => {
-    console.error = jest.fn();
-    setupEventListeners(null);
-    document.getElementById("searchButton").click();
-    expect(console.error).toHaveBeenCalledWith(
-      "GraphRenderer is not initialized"
-    );
+    expect(emitSpy).toHaveBeenCalledWith("resetZoom");
   });
 });
