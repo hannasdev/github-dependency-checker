@@ -2,6 +2,7 @@ import "./styles/styles.css";
 import { GraphRenderer } from "./utils/graphRenderer.js";
 import { DataLoader } from "./utils/dataLoader.js";
 import { createLegend } from "./utils/legendUtils.js";
+
 let graphRenderer;
 
 export async function init() {
@@ -9,7 +10,6 @@ export async function init() {
   const loadingElement = document.getElementById("loading");
 
   try {
-    // Show "Loading...""
     if (loadingElement) loadingElement.style.display = "block";
 
     const data = await dataLoader.loadData();
@@ -28,7 +28,6 @@ export async function init() {
     createLegend(data);
     setupEventListeners();
 
-    // Hide "Loading...""
     if (loadingElement) loadingElement.style.display = "none";
   } catch (error) {
     console.error("Failed to load data:", error.message);
@@ -39,7 +38,7 @@ export async function init() {
   }
 }
 
-export function setupEventListeners(graphRenderer) {
+export function setupEventListeners() {
   const searchInput = document.getElementById("nodeNameInput");
   const searchButton = document.getElementById("searchButton");
   const zoomInButton = document.getElementById("zoomIn");
@@ -70,9 +69,11 @@ export function setupEventListeners(graphRenderer) {
     onResetZoom: () => graphRenderer && graphRenderer.resetZoom(),
   };
 
-  zoomInButton.addEventListener("click", handlers.onZoomIn);
-  zoomOutButton.addEventListener("click", handlers.onZoomOut);
-  resetZoomButton.addEventListener("click", handlers.onResetZoom);
+  if (zoomInButton) zoomInButton.addEventListener("click", handlers.onZoomIn);
+  if (zoomOutButton)
+    zoomOutButton.addEventListener("click", handlers.onZoomOut);
+  if (resetZoomButton)
+    resetZoomButton.addEventListener("click", handlers.onResetZoom);
 
   return handlers;
 }
