@@ -15,7 +15,7 @@ async function main() {
   const repos = await asyncFetchRepos(LIMIT);
   logger.info(`Fetched ${repos.length} repositories`);
 
-  const repoDependencies = await asyncProcessRepos(repos);
+  const repoDependencies = await asyncProcessRepos(repos, 3);
   // logger.info("Repo dependencies:", repoDependencies);
 
   const dependencyCount = await asyncCountDependencies(repoDependencies);

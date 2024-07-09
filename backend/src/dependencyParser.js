@@ -11,7 +11,7 @@ const DEPENDENCY_FILES = [
   "pom.xml",
 ];
 
-async function processRepos(repos) {
+async function processRepos(repos, maxDepth) {
   const repoDependencies = {};
   const bar = new ProgressBar("Processing repositories [:bar] :percent :etas", {
     complete: "=",
@@ -21,14 +21,14 @@ async function processRepos(repos) {
   });
 
   for (const repo of repos) {
-    repoDependencies[repo.name] = await scanRepository(repo.name);
+    repoDependencies[repo.name] = await scanRepository(repo.name, maxDepth);
     bar.tick();
   }
 
   return repoDependencies;
 }
 
-async function scanRepository(repoName) {
+async function scanRepository(repoName, maxDepth = 2) {
   const allDependencies = [];
 
   // Scan root level
@@ -37,20 +37,31 @@ async function scanRepository(repoName) {
     allDependencies.push(...dependencies);
   }
 
-  // Scan potential monorepo folders
-  for (const folder of MONOREPO_FOLDERS) {
-    const contents = await getDirectoryContents(repoName, folder);
+  // Recursive function to scan directories
+  async function scanDirectory(path, currentDepth) {
+    if (currentDepth > maxDepth) return;
+
+    const contents = await getDirectoryContents(repoName, path);
     if (contents && Array.isArray(contents)) {
       for (const item of contents) {
         if (item.type === "dir") {
+          const newPath = `${path}/${item.name}`;
+          // Scan dependency files in this directory
           for (const file of DEPENDENCY_FILES) {
-            const path = `${folder}/${item.name}/${file}`;
-            const dependencies = await scanDependencyFile(repoName, path);
+            const filePath = `${newPath}/${file}`;
+            const dependencies = await scanDependencyFile(repoName, filePath);
             allDependencies.push(...dependencies);
           }
+          // Recursively scan subdirectories
+          await scanDirectory(newPath, currentDepth + 1);
         }
       }
     }
+  }
+
+  // Scan potential monorepo folders
+  for (const folder of MONOREPO_FOLDERS) {
+    await scanDirectory(folder, 1);
   }
 
   return [...new Set(allDependencies)]; // Remove duplicates
