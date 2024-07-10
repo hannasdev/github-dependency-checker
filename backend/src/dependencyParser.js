@@ -1,6 +1,6 @@
+import pLimit from "p-limit";
 import ProgressBar from "progress";
 import path from "path";
-import pLimit from "p-limit";
 import {
   asyncGetFileContent,
   asyncGetDirectoryContents,
@@ -8,6 +8,7 @@ import {
 } from "./api.js";
 import { asyncErrorHandler } from "./errorHandler.js";
 import logger from "./logger.js";
+import { ProgressStorage } from "./progressStorage.js";
 
 const MONOREPO_FOLDERS = ["applications", "packages", "services"];
 const DEPENDENCY_FILES = [
@@ -16,10 +17,14 @@ const DEPENDENCY_FILES = [
   "Gemfile",
   "pom.xml",
 ];
-const DELAY_MS = 250; // Helps mitigate rate limits.
 
-async function processRepos(repos, maxDepth, concurrency = 2) {
-  const repoDependencies = {};
+async function processRepos(repos, maxDepth, concurrency = 10, batchSize = 50) {
+  const progressStorage = new ProgressStorage();
+  await progressStorage.load();
+
+  const repoDependencies = progressStorage.getAllProgress();
+  const remainingRepos = repos.filter((repo) => !repoDependencies[repo.name]);
+
   const limit = pLimit(concurrency);
 
   const bar = new ProgressBar(
@@ -28,28 +33,41 @@ async function processRepos(repos, maxDepth, concurrency = 2) {
       complete: "=",
       incomplete: " ",
       width: 20,
-      total: repos.length,
+      total: remainingRepos.length,
     }
   );
 
-  for (let i = 0; i < repos.length; i++) {
-    const repo = repos[i];
-    try {
-      repoDependencies[repo.name] = await limit(() =>
-        scanRepository(repo.name, maxDepth)
-      );
-      bar.tick();
-      logger.info(`Processed ${i + 1}/${repos.length} repositories`);
+  logger.info(
+    `Resuming from ${
+      Object.keys(repoDependencies).length
+    } previously processed repositories`
+  );
 
-      // Add a delay between repository processing
-      if (i < repos.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, DELAY_MS)); // 1 second delay
-      }
-    } catch (error) {
-      logger.error(`Error processing repository ${repo.name}:`, error);
-      // Tick the progress bar even if there's an error
-      bar.tick();
-      // Continue with the next repository instead of stopping the entire process
+  for (let i = 0; i < remainingRepos.length; i += batchSize) {
+    const batch = remainingRepos.slice(i, i + batchSize);
+    const promises = batch.map((repo) =>
+      limit(async () => {
+        try {
+          const dependencies = await scanRepository(repo.name, maxDepth);
+          repoDependencies[repo.name] = dependencies;
+          progressStorage.setRepoProgress(repo.name, dependencies);
+          await progressStorage.save();
+          bar.tick();
+          logger.info(`Processed repository: ${repo.name}`);
+        } catch (error) {
+          logger.error(`Error processing repository ${repo.name}:`, error);
+          bar.tick();
+        }
+      })
+    );
+
+    await Promise.all(promises);
+
+    if (i + batchSize < remainingRepos.length) {
+      logger.info(
+        `Completed batch. Waiting for 60 seconds before next batch...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, 60000));
     }
   }
 

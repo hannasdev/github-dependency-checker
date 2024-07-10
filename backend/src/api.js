@@ -1,6 +1,6 @@
 import https from "https";
 import path from "path";
-import * as minimatch from "minimatch";
+import minimatch from "minimatch";
 import { GITHUB_API_URL, ORG_NAME, TOKEN, LIMIT } from "./config.js";
 import { asyncGetCachedContent, asyncSetCachedContent } from "./cache.js";
 import { asyncErrorHandler } from "./errorHandler.js";
@@ -89,62 +89,36 @@ async function getFileContent(repo, filePath) {
     return cachedData.content;
   }
 
-  const fileOptions = {
+  const options = {
     hostname: GITHUB_API_URL,
     path: `/repos/${ORG_NAME}/${repo}/contents/${filePath}`,
     method: "GET",
-    headers: { ...headers },
+    headers: {
+      Authorization: `token ${TOKEN}`,
+      "User-Agent": "Node.js",
+      Accept: "application/vnd.github.v3+json",
+    },
   };
 
-  return new Promise((resolve, reject) => {
-    const fileReq = https.request(fileOptions, (fileRes) => {
-      let fileData = "";
-
-      fileRes.on("data", (chunk) => {
-        fileData += chunk;
+  try {
+    const data = await githubApiRequest(options);
+    if (data.content) {
+      await asyncSetCachedContent(cacheKey, {
+        content: data.content,
+        etag: data.sha,
       });
-
-      fileRes.on("end", async () => {
-        if (fileRes.statusCode === 200) {
-          try {
-            const parsedData = JSON.parse(fileData);
-            if (parsedData.content) {
-              await asyncSetCachedContent(cacheKey, {
-                content: parsedData.content,
-                etag: fileRes.headers.etag,
-              });
-              resolve(parsedData.content);
-            } else {
-              reject(new Error(`No content found for ${filePath} in ${repo}`));
-            }
-          } catch (error) {
-            reject(new Error(`Failed to parse file content: ${error.message}`));
-          }
-        } else if (fileRes.statusCode === 404) {
-          resolve(null); // File not found, but not a critical error
-        } else {
-          reject(
-            new Error(
-              `GitHub API responded with status code ${fileRes.statusCode} for ${filePath} in ${repo}`
-            )
-          );
-        }
-      });
-    });
-
-    fileReq.on("error", (e) => {
-      reject(
-        new Error(`Request failed for ${filePath} in ${repo}: ${e.message}`)
-      );
-    });
-
-    fileReq.setTimeout(30000, () => {
-      fileReq.destroy();
-      reject(new Error(`Request timed out for ${filePath} in ${repo}`));
-    });
-
-    fileReq.end();
-  });
+      return data.content;
+    } else {
+      logger.warn(`No content found for ${filePath} in ${repo}`);
+      return null;
+    }
+  } catch (error) {
+    if (error.message.includes("status code 404")) {
+      logger.info(`File not found: ${filePath} in ${repo}`);
+      return null;
+    }
+    throw error;
+  }
 }
 
 async function getDirectoryContents(repo, path) {
@@ -184,7 +158,7 @@ async function getMatchingDirectories(repoName, pattern) {
       for (const item of contents) {
         if (item.type === "dir") {
           const relativePath = path.join(currentPath, item.name);
-          if (minimatch.default(relativePath, pattern)) {
+          if (minimatch(relativePath, pattern)) {
             matchingDirs.push(relativePath);
           }
           await traverse(relativePath);
