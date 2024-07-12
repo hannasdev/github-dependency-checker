@@ -4,3 +4,5 @@
 *.log
 /.cache
 /shared/data/*.json
+.DS_Store
+progress.json
