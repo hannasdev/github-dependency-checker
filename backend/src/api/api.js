@@ -14,6 +14,13 @@ export function createApi({ apiClient, cache, logger, progressStorage }) {
       while (true) {
         logger.info(`Fetching page ${page} of repositories...`);
         const pageRepos = await apiClient.getOrgRepos(page, per_page);
+
+        if (!Array.isArray(pageRepos)) {
+          throw new Error(
+            "Error setting up the request: Invalid response from API"
+          );
+        }
+
         logger.info(`Fetched ${pageRepos.length} repositories on page ${page}`);
 
         if (pageRepos.length === 0) break;
@@ -33,8 +40,7 @@ export function createApi({ apiClient, cache, logger, progressStorage }) {
       return allRepos;
     } catch (error) {
       logger.error("Error in fetchRepos:", error);
-      handleApiError(error, logger, "Error fetching repositories");
-      return []; // Return an empty array in case of error
+      throw new Error(`Error setting up the request: ${error.message}`);
     }
   }
 
