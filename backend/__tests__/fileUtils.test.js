@@ -1,22 +1,47 @@
-import fs from "fs";
-import { saveDependencies } from "../src/fileUtils";
+import { jest } from "@jest/globals";
 
-jest.mock("winston");
-jest.mock("fs", () => ({
-  promises: {
-    writeFile: jest.fn(),
+jest.mock("fs/promises", () => ({
+  writeFile: jest.fn(),
+}));
+
+jest.mock("../src/logger.js", () => ({
+  default: {
+    info: jest.fn(),
+    error: jest.fn(),
   },
 }));
 
+import * as fs from "fs/promises";
+
 describe("FileUtils module", () => {
-  test("saveDependencies writes correct data to file", () => {
+  let saveDependencies;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    const fileUtils = await import("../src/fileUtils.js");
+    saveDependencies = fileUtils.saveDependencies;
+  });
+
+  test("saveDependencies writes correct data to file", async () => {
     const graphData = { nodes: [], links: [] };
-    saveDependencies(graphData);
+    fs.writeFile.mockResolvedValue(undefined);
+
+    await saveDependencies(graphData);
 
     expect(fs.writeFile).toHaveBeenCalledWith(
-      "../dependencies.json",
+      expect.stringContaining("dependencies.json"),
       JSON.stringify(graphData, null, 2),
-      "utf-8"
+      { encoding: "utf-8" }
+    );
+  });
+
+  test("saveDependencies handles errors", async () => {
+    const graphData = { nodes: [], links: [] };
+    const error = new Error("Write error");
+    fs.writeFile.mockRejectedValue(error);
+
+    await expect(saveDependencies(graphData)).rejects.toThrow(
+      "Failed to save dependencies: Write error"
     );
   });
 });

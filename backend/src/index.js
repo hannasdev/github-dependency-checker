@@ -1,45 +1,30 @@
-import { asyncFetchRepos } from "./api.js";
-import { asyncProcessRepos } from "./dependencyParser.js";
-import { LIMIT } from "./config.js";
-import logger from "./logger.js";
-import { asyncErrorHandler } from "./errorHandler.js";
-import {
-  asyncCountDependencies,
-  asyncCreateGraphData,
-} from "./graphBuilder.js";
-import { asyncSaveDependencies } from "./fileUtils.js";
-import { ProgressStorage } from "./progressStorage.js";
+import container from "./dependencyContainer.js";
+import { globalErrorHandler } from "./errorHandler.js";
 
 async function main() {
-  logger.info("Starting dependency analysis");
+  const { api, logger, graphBuilder, fileUtils } = container.cradle;
 
-  const progressStorage = new ProgressStorage();
-  await progressStorage.load();
+  try {
+    const repos = await api.fetchRepos();
+    logger.info(`Fetched ${repos.length} repositories`);
 
-  const repos = await asyncFetchRepos(LIMIT);
-  logger.info(`Fetched ${repos.length} repositories`);
+    const repoDependencies = await api.processRepos(repos, 2);
+    logger.info("Finished processing repositories");
 
-  const repoDependencies = await asyncProcessRepos(repos, 3, 10); // Using 10 for concurrency
-  logger.info("Dependencies processed");
+    const dependencyCount = graphBuilder.countDependencies(repoDependencies);
+    const graphData = graphBuilder.createGraphData(
+      repoDependencies,
+      dependencyCount
+    );
 
-  const dependencyCount = await asyncCountDependencies(repoDependencies);
-  logger.info("Dependencies counted");
-
-  const graphData = await asyncCreateGraphData(
-    repoDependencies,
-    dependencyCount
-  );
-  logger.info("Graph data created");
-
-  await asyncSaveDependencies(graphData);
-  logger.info("Graph data saved");
-
-  // Clear progress after successful completion
-  await progressStorage.clear();
-
-  logger.info("Dependency analysis completed successfully");
+    await fileUtils.saveDependencies(graphData, logger);
+    logger.info("Dependencies saved successfully");
+  } catch (error) {
+    globalErrorHandler(error, logger);
+  }
 }
 
-const asyncMain = asyncErrorHandler(main);
-
-asyncMain();
+main().catch((error) => {
+  console.error("Unhandled error in main:", error);
+  process.exit(1);
+});

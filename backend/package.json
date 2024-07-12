@@ -1,16 +1,17 @@
 {
   "name": "github-dependency-checker",
   "version": "1.0.0",
+  "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "test": "jest"
+    "test": "NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
-  "type": "module",
   "dependencies": {
+    "awilix": "^10.0.2",
     "axios": "^1.7.2",
     "dotenv": "^16.4.5",
     "minimatch": "^10.0.1",

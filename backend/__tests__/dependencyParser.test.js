@@ -1,35 +1,128 @@
-import { processRepos, parseDependencies } from "../src/dependencyParser";
-import { getFileContent } from "../src/api";
+import { jest } from "@jest/globals";
 
-jest.mock("../src/api");
-jest.mock("winston");
-describe("DependencyParser module", () => {
-  test("processRepos returns dependencies for each repo", async () => {
-    getFileContent.mockResolvedValueOnce(
-      Buffer.from(
-        JSON.stringify({
-          dependencies: { dep1: "1.0.0", dep2: "2.0.0" },
-        })
-      ).toString("base64")
-    );
+jest.mock("../src/config.js", () => ({
+  INTERNAL_REPO_IDENTIFIER: "@acast-tech/",
+}));
 
-    const repos = [{ name: "repo1" }];
-    const result = await processRepos(repos);
+jest.mock("../src/logger.js", () => ({
+  default: {
+    info: jest.fn(),
+    error: jest.fn(),
+  },
+}));
 
-    expect(result).toEqual({
-      repo1: ["dep1", "dep2"],
+describe("GraphBuilder module", () => {
+  describe("countDependencies", () => {
+    test("counts only internal dependencies", async () => {
+      const repoDependencies = {
+        repo1: ["@acast-tech/dep1", "@acast-tech/dep2", "external-dep"],
+        repo2: ["@acast-tech/dep1", "@acast-tech/dep3", "another-external-dep"],
+      };
+
+      const result = countDependencies(repoDependencies);
+
+      expect(result).toEqual({
+        "@acast-tech/dep1": { count: 2, sources: ["repo1", "repo2"] },
+        "@acast-tech/dep2": { count: 1, sources: ["repo1"] },
+        "@acast-tech/dep3": { count: 1, sources: ["repo2"] },
+      });
+      expect(result["external-dep"]).toBeUndefined();
+      expect(result["another-external-dep"]).toBeUndefined();
     });
   });
 
-  test("parseDependencies extracts dependencies from package.json", () => {
-    const content = Buffer.from(
-      JSON.stringify({
-        dependencies: { dep1: "1.0.0", dep2: "2.0.0" },
-      })
-    ).toString("base64");
+  describe("createGraphData", () => {
+    test("creates correct graph structure with proper depths", () => {
+      const repoDependencies = {
+        repo1: ["@acast-tech/dep1", "@acast-tech/dep2", "external-dep"],
+        repo2: ["@acast-tech/dep1", "@acast-tech/dep3"],
+      };
+      const dependencyCount = {
+        "@acast-tech/dep1": { count: 2, sources: ["repo1", "repo2"] },
+        "@acast-tech/dep2": { count: 1, sources: ["repo1"] },
+        "@acast-tech/dep3": { count: 1, sources: ["repo2"] },
+      };
 
-    const result = parseDependencies("package.json", content);
+      const result = createGraphData(repoDependencies, dependencyCount);
 
-    expect(result).toEqual(["dep1", "dep2"]);
+      expect(result.nodes).toHaveLength(5); // 2 repos + 3 internal deps
+      expect(result.nodes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "repo1", depth: 0 }),
+          expect.objectContaining({ id: "repo2", depth: 0 }),
+          expect.objectContaining({ id: "@acast-tech/dep1", depth: 1 }),
+          expect.objectContaining({ id: "@acast-tech/dep2", depth: 1 }),
+          expect.objectContaining({ id: "@acast-tech/dep3", depth: 1 }),
+        ])
+      );
+
+      expect(result.links).toHaveLength(4); // 4 internal dependency connections
+      expect(result.links).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            source: "repo1",
+            target: "@acast-tech/dep1",
+          }),
+          expect.objectContaining({
+            source: "repo1",
+            target: "@acast-tech/dep2",
+          }),
+          expect.objectContaining({
+            source: "repo2",
+            target: "@acast-tech/dep1",
+          }),
+          expect.objectContaining({
+            source: "repo2",
+            target: "@acast-tech/dep3",
+          }),
+        ])
+      );
+
+      expect(result.nodes.find((n) => n.id === "external-dep")).toBeUndefined();
+      expect(
+        result.links.find((l) => l.target === "external-dep")
+      ).toBeUndefined();
+    });
+
+    test("handles multi-level dependencies correctly", () => {
+      const repoDependencies = {
+        repo1: ["@acast-tech/dep1"],
+        "@acast-tech/dep1": ["@acast-tech/dep2"],
+        "@acast-tech/dep2": ["@acast-tech/dep3"],
+      };
+      const dependencyCount = {
+        "@acast-tech/dep1": { count: 1, sources: ["repo1"] },
+        "@acast-tech/dep2": { count: 1, sources: ["@acast-tech/dep1"] },
+        "@acast-tech/dep3": { count: 1, sources: ["@acast-tech/dep2"] },
+      };
+
+      const result = createGraphData(repoDependencies, dependencyCount);
+
+      expect(result.nodes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: "repo1", depth: 0 }),
+          expect.objectContaining({ id: "@acast-tech/dep1", depth: 1 }),
+          expect.objectContaining({ id: "@acast-tech/dep2", depth: 2 }),
+          expect.objectContaining({ id: "@acast-tech/dep3", depth: 3 }),
+        ])
+      );
+
+      expect(result.links).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            source: "repo1",
+            target: "@acast-tech/dep1",
+          }),
+          expect.objectContaining({
+            source: "@acast-tech/dep1",
+            target: "@acast-tech/dep2",
+          }),
+          expect.objectContaining({
+            source: "@acast-tech/dep2",
+            target: "@acast-tech/dep3",
+          }),
+        ])
+      );
+    });
   });
 });

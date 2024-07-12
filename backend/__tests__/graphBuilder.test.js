@@ -1,13 +1,29 @@
-import { countDependencies, createGraphData } from "../src/graphBuilder";
+import { jest } from "@jest/globals";
 
-jest.mock("winston");
-jest.mock("../src/config", () => ({
-  INTERNAL_REPO_IDENTIFIER: "@acast-tech/",
+const INTERNAL_REPO_IDENTIFIER = "@acast-tech/";
+
+jest.mock("../src/config.js", () => ({
+  INTERNAL_REPO_IDENTIFIER,
+}));
+
+jest.mock("../src/logger.js", () => ({
+  default: {
+    info: jest.fn(),
+    error: jest.fn(),
+  },
 }));
 
 describe("GraphBuilder module", () => {
+  let countDependencies, createGraphData;
+
+  beforeEach(async () => {
+    const graphBuilder = await import("../src/graphBuilder.js");
+    countDependencies = graphBuilder.countDependencies;
+    createGraphData = graphBuilder.createGraphData;
+  });
+
   describe("countDependencies", () => {
-    test("counts only internal dependencies", async () => {
+    test("counts only internal dependencies", () => {
       const repoDependencies = {
         repo1: ["@acast-tech/dep1", "@acast-tech/dep2", "external-dep"],
         repo2: ["@acast-tech/dep1", "@acast-tech/dep3", "another-external-dep"],
@@ -39,7 +55,6 @@ describe("GraphBuilder module", () => {
 
       const result = createGraphData(repoDependencies, dependencyCount);
 
-      // Check nodes
       expect(result.nodes).toHaveLength(5); // 2 repos + 3 internal deps
       expect(result.nodes).toEqual(
         expect.arrayContaining([
@@ -51,7 +66,6 @@ describe("GraphBuilder module", () => {
         ])
       );
 
-      // Check links
       expect(result.links).toHaveLength(4); // 4 internal dependency connections
       expect(result.links).toEqual(
         expect.arrayContaining([
@@ -74,7 +88,6 @@ describe("GraphBuilder module", () => {
         ])
       );
 
-      // Ensure no external dependencies are included
       expect(result.nodes.find((n) => n.id === "external-dep")).toBeUndefined();
       expect(
         result.links.find((l) => l.target === "external-dep")
@@ -101,6 +114,23 @@ describe("GraphBuilder module", () => {
           expect.objectContaining({ id: "@acast-tech/dep1", depth: 1 }),
           expect.objectContaining({ id: "@acast-tech/dep2", depth: 2 }),
           expect.objectContaining({ id: "@acast-tech/dep3", depth: 3 }),
+        ])
+      );
+
+      expect(result.links).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            source: "repo1",
+            target: "@acast-tech/dep1",
+          }),
+          expect.objectContaining({
+            source: "@acast-tech/dep1",
+            target: "@acast-tech/dep2",
+          }),
+          expect.objectContaining({
+            source: "@acast-tech/dep2",
+            target: "@acast-tech/dep3",
+          }),
         ])
       );
     });

@@ -3,3 +3,4 @@
 /src/.cache/
 *.log
 /.cache
+/shared/data/*.json

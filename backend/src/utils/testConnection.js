@@ -1,7 +1,9 @@
 import dotenv from "dotenv";
 import axios from "axios";
 import { asyncErrorHandler } from "./errorHandler.js";
-import logger from "./logger.js";
+import container from "./dependencyContainer.js";
+
+const { logger } = container.cradle;
 import { GITHUB_API_URL, ORG_NAME, TOKEN } from "./config.js";
 
 dotenv.config();
