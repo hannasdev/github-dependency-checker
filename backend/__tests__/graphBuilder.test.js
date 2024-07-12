@@ -13,13 +13,21 @@ jest.mock("../src/logger.js", () => ({
   },
 }));
 
+jest.mock("../src/errorHandler.js", () => ({
+  handleUnexpectedError: jest.fn(),
+}));
+
 describe("GraphBuilder module", () => {
-  let countDependencies, createGraphData;
+  let graphBuilder;
+  let mockLogger;
 
   beforeEach(async () => {
-    const graphBuilder = await import("../src/graphBuilder.js");
-    countDependencies = graphBuilder.countDependencies;
-    createGraphData = graphBuilder.createGraphData;
+    const graphBuilderModule = await import("../src/graphBuilder.js");
+    mockLogger = {
+      info: jest.fn(),
+      error: jest.fn(),
+    };
+    graphBuilder = graphBuilderModule.createGraphBuilder(mockLogger);
   });
 
   describe("countDependencies", () => {
@@ -29,7 +37,7 @@ describe("GraphBuilder module", () => {
         repo2: ["@acast-tech/dep1", "@acast-tech/dep3", "another-external-dep"],
       };
 
-      const result = countDependencies(repoDependencies);
+      const result = graphBuilder.countDependencies(repoDependencies);
 
       expect(result).toEqual({
         "@acast-tech/dep1": { count: 2, sources: ["repo1", "repo2"] },
@@ -53,7 +61,10 @@ describe("GraphBuilder module", () => {
         "@acast-tech/dep3": { count: 1, sources: ["repo2"] },
       };
 
-      const result = createGraphData(repoDependencies, dependencyCount);
+      const result = graphBuilder.createGraphData(
+        repoDependencies,
+        dependencyCount
+      );
 
       expect(result.nodes).toHaveLength(5); // 2 repos + 3 internal deps
       expect(result.nodes).toEqual(
@@ -106,7 +117,10 @@ describe("GraphBuilder module", () => {
         "@acast-tech/dep3": { count: 1, sources: ["@acast-tech/dep2"] },
       };
 
-      const result = createGraphData(repoDependencies, dependencyCount);
+      const result = graphBuilder.createGraphData(
+        repoDependencies,
+        dependencyCount
+      );
 
       expect(result.nodes).toEqual(
         expect.arrayContaining([
