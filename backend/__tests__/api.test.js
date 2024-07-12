@@ -1,16 +1,18 @@
 import { jest } from "@jest/globals";
 import { createContainer, asFunction, asValue } from "awilix";
 
-// Mock dependencies
-jest.mock("../src/config.js", () => ({
-  GITHUB_API_URL: "api.github.com",
-  ORG_NAME: "test-org",
-  TOKEN: "test-token",
-  LIMIT: 100,
-}));
-
 jest.mock("p-limit", () => jest.fn(() => jest.fn((fn) => fn())));
 jest.mock("progress", () => jest.fn());
+
+const mockConfig = {
+  CACHE_DIR: "mock-cache-dir",
+  INTERNAL_REPO_IDENTIFIER: "@mock-org/",
+  TOKEN: "test-token",
+  LIMIT: 100,
+  GITHUB_API_URL: "https://api.github.com",
+  GITHUB_TOKEN: "test-token",
+  ORG_NAME: "test-org",
+};
 
 // Mock the ApiError class
 class MockApiError extends Error {
@@ -57,7 +59,7 @@ describe("API module", () => {
       cache: asValue(mockCache),
       logger: asValue(mockLogger),
       progressStorage: asValue(mockProgressStorage),
-      config: asValue(await import("../src/config.js")),
+      config: asValue(mockConfig),
       handleApiError: asValue((error, logger, message) => {
         throw new Error(`Error setting up the request: ${error.message}`);
       }),

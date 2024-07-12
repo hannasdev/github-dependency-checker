@@ -1,11 +1,5 @@
 import { jest } from "@jest/globals";
 
-const INTERNAL_REPO_IDENTIFIER = "@acast-tech/";
-
-jest.mock("../src/config.js", () => ({
-  INTERNAL_REPO_IDENTIFIER,
-}));
-
 jest.mock("../src/logger.js", () => ({
   default: {
     info: jest.fn(),
@@ -33,16 +27,16 @@ describe("GraphBuilder module", () => {
   describe("countDependencies", () => {
     test("counts only internal dependencies", () => {
       const repoDependencies = {
-        repo1: ["@acast-tech/dep1", "@acast-tech/dep2", "external-dep"],
-        repo2: ["@acast-tech/dep1", "@acast-tech/dep3", "another-external-dep"],
+        repo1: ["@mock-org/dep1", "@mock-org/dep2", "external-dep"],
+        repo2: ["@mock-org/dep1", "@mock-org/dep3", "another-external-dep"],
       };
 
       const result = graphBuilder.countDependencies(repoDependencies);
 
       expect(result).toEqual({
-        "@acast-tech/dep1": { count: 2, sources: ["repo1", "repo2"] },
-        "@acast-tech/dep2": { count: 1, sources: ["repo1"] },
-        "@acast-tech/dep3": { count: 1, sources: ["repo2"] },
+        "@mock-org/dep1": { count: 2, sources: ["repo1", "repo2"] },
+        "@mock-org/dep2": { count: 1, sources: ["repo1"] },
+        "@mock-org/dep3": { count: 1, sources: ["repo2"] },
       });
       expect(result["external-dep"]).toBeUndefined();
       expect(result["another-external-dep"]).toBeUndefined();
@@ -52,13 +46,13 @@ describe("GraphBuilder module", () => {
   describe("createGraphData", () => {
     test("creates correct graph structure with proper depths", () => {
       const repoDependencies = {
-        repo1: ["@acast-tech/dep1", "@acast-tech/dep2", "external-dep"],
-        repo2: ["@acast-tech/dep1", "@acast-tech/dep3"],
+        repo1: ["@mock-org/dep1", "@mock-org/dep2", "external-dep"],
+        repo2: ["@mock-org/dep1", "@mock-org/dep3"],
       };
       const dependencyCount = {
-        "@acast-tech/dep1": { count: 2, sources: ["repo1", "repo2"] },
-        "@acast-tech/dep2": { count: 1, sources: ["repo1"] },
-        "@acast-tech/dep3": { count: 1, sources: ["repo2"] },
+        "@mock-org/dep1": { count: 2, sources: ["repo1", "repo2"] },
+        "@mock-org/dep2": { count: 1, sources: ["repo1"] },
+        "@mock-org/dep3": { count: 1, sources: ["repo2"] },
       };
 
       const result = graphBuilder.createGraphData(
@@ -71,9 +65,9 @@ describe("GraphBuilder module", () => {
         expect.arrayContaining([
           expect.objectContaining({ id: "repo1", depth: 0 }),
           expect.objectContaining({ id: "repo2", depth: 0 }),
-          expect.objectContaining({ id: "@acast-tech/dep1", depth: 1 }),
-          expect.objectContaining({ id: "@acast-tech/dep2", depth: 1 }),
-          expect.objectContaining({ id: "@acast-tech/dep3", depth: 1 }),
+          expect.objectContaining({ id: "@mock-org/dep1", depth: 1 }),
+          expect.objectContaining({ id: "@mock-org/dep2", depth: 1 }),
+          expect.objectContaining({ id: "@mock-org/dep3", depth: 1 }),
         ])
       );
 
@@ -82,19 +76,19 @@ describe("GraphBuilder module", () => {
         expect.arrayContaining([
           expect.objectContaining({
             source: "repo1",
-            target: "@acast-tech/dep1",
+            target: "@mock-org/dep1",
           }),
           expect.objectContaining({
             source: "repo1",
-            target: "@acast-tech/dep2",
+            target: "@mock-org/dep2",
           }),
           expect.objectContaining({
             source: "repo2",
-            target: "@acast-tech/dep1",
+            target: "@mock-org/dep1",
           }),
           expect.objectContaining({
             source: "repo2",
-            target: "@acast-tech/dep3",
+            target: "@mock-org/dep3",
           }),
         ])
       );
@@ -107,14 +101,14 @@ describe("GraphBuilder module", () => {
 
     test("handles multi-level dependencies correctly", () => {
       const repoDependencies = {
-        repo1: ["@acast-tech/dep1"],
-        "@acast-tech/dep1": ["@acast-tech/dep2"],
-        "@acast-tech/dep2": ["@acast-tech/dep3"],
+        repo1: ["@mock-org/dep1"],
+        "@mock-org/dep1": ["@mock-org/dep2"],
+        "@mock-org/dep2": ["@mock-org/dep3"],
       };
       const dependencyCount = {
-        "@acast-tech/dep1": { count: 1, sources: ["repo1"] },
-        "@acast-tech/dep2": { count: 1, sources: ["@acast-tech/dep1"] },
-        "@acast-tech/dep3": { count: 1, sources: ["@acast-tech/dep2"] },
+        "@mock-org/dep1": { count: 1, sources: ["repo1"] },
+        "@mock-org/dep2": { count: 1, sources: ["@mock-org/dep1"] },
+        "@mock-org/dep3": { count: 1, sources: ["@mock-org/dep2"] },
       };
 
       const result = graphBuilder.createGraphData(
@@ -125,9 +119,9 @@ describe("GraphBuilder module", () => {
       expect(result.nodes).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ id: "repo1", depth: 0 }),
-          expect.objectContaining({ id: "@acast-tech/dep1", depth: 1 }),
-          expect.objectContaining({ id: "@acast-tech/dep2", depth: 2 }),
-          expect.objectContaining({ id: "@acast-tech/dep3", depth: 3 }),
+          expect.objectContaining({ id: "@mock-org/dep1", depth: 1 }),
+          expect.objectContaining({ id: "@mock-org/dep2", depth: 2 }),
+          expect.objectContaining({ id: "@mock-org/dep3", depth: 3 }),
         ])
       );
 
@@ -135,15 +129,15 @@ describe("GraphBuilder module", () => {
         expect.arrayContaining([
           expect.objectContaining({
             source: "repo1",
-            target: "@acast-tech/dep1",
+            target: "@mock-org/dep1",
           }),
           expect.objectContaining({
-            source: "@acast-tech/dep1",
-            target: "@acast-tech/dep2",
+            source: "@mock-org/dep1",
+            target: "@mock-org/dep2",
           }),
           expect.objectContaining({
-            source: "@acast-tech/dep2",
-            target: "@acast-tech/dep3",
+            source: "@mock-org/dep2",
+            target: "@mock-org/dep3",
           }),
         ])
       );

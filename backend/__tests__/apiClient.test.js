@@ -1,19 +1,23 @@
 import { jest } from "@jest/globals";
 import { createContainer, asFunction, asValue } from "awilix";
+// import * as config from "../src/config.js"; // Add this line
+
+const mockConfig = {
+  GITHUB_API_URL: "https://api.github.com",
+  GITHUB_TOKEN: "test-token",
+  ORG_NAME: "test-org",
+};
 
 // Mock axios
 const mockGet = jest.fn();
-const mockAxios = {
-  create: jest.fn(() => ({
-    get: mockGet,
-    interceptors: {
-      response: {
-        use: jest.fn(),
-      },
+const mockAxiosInstance = {
+  get: mockGet,
+  interceptors: {
+    response: {
+      use: jest.fn(),
     },
-  })),
+  },
 };
-jest.mock("axios", () => mockAxios);
 
 describe("API Client module", () => {
   let container, apiClient, mockLogger;
@@ -27,19 +31,20 @@ describe("API Client module", () => {
     container = createContainer();
 
     container.register({
-      axios: asValue(mockAxios),
       logger: asValue(mockLogger),
-      config: asValue({
-        GITHUB_API_URL: "https://api.github.com",
-        GITHUB_TOKEN: "test-token",
-        ORG_NAME: "test-org",
-      }),
+      config: asValue(mockConfig),
     });
 
     // Dynamically import the apiClient module
     const apiClientModule = await import("../src/api/apiClient.js");
     container.register({
-      apiClient: asFunction(apiClientModule.createApiClient).singleton(),
+      apiClient: asFunction((cradle) =>
+        apiClientModule.createApiClient(
+          cradle.logger,
+          mockAxiosInstance,
+          cradle.config
+        )
+      ).singleton(),
     });
 
     apiClient = container.resolve("apiClient");
@@ -64,22 +69,30 @@ describe("API Client module", () => {
     const mockResponse = { data: { content: "base64EncodedContent" } };
     mockGet.mockResolvedValueOnce(mockResponse);
 
-    await apiClient.getRepoFileContent("test-repo", "path/to/file.js");
+    const result = await apiClient.getRepoFileContent(
+      "test-repo",
+      "path/to/file.js"
+    );
 
     expect(mockGet).toHaveBeenCalledWith(
       "/repos/test-org/test-repo/contents/path/to/file.js"
     );
+    expect(result).toEqual(mockResponse.data);
   });
 
   test("getRepoDirectoryContents calls axios with correct parameters", async () => {
     const mockResponse = { data: [{ name: "file1.js" }, { name: "file2.js" }] };
     mockGet.mockResolvedValueOnce(mockResponse);
 
-    await apiClient.getRepoDirectoryContents("test-repo", "path/to/dir");
+    const result = await apiClient.getRepoDirectoryContents(
+      "test-repo",
+      "path/to/dir"
+    );
 
     expect(mockGet).toHaveBeenCalledWith(
       "/repos/test-org/test-repo/contents/path/to/dir"
     );
+    expect(result).toEqual(mockResponse.data);
   });
 
   // Add more tests for error handling, rate limiting, etc.

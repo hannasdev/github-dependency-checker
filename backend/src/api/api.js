@@ -1,10 +1,15 @@
 import pLimit from "p-limit";
 import ProgressBar from "progress";
 import { handleApiError, handleUnexpectedError } from "../errorHandler.js";
-import { LIMIT } from "../config.js";
 import { scanRepository } from "../repoScanner.js";
 
-export function createApi({ apiClient, cache, logger, progressStorage }) {
+export function createApi({
+  apiClient,
+  cache,
+  logger,
+  progressStorage,
+  config,
+}) {
   async function fetchRepos() {
     try {
       let allRepos = [];
@@ -28,8 +33,8 @@ export function createApi({ apiClient, cache, logger, progressStorage }) {
         allRepos = allRepos.concat(pageRepos);
         logger.info(`Total repositories fetched so far: ${allRepos.length}`);
 
-        if (allRepos.length >= LIMIT) {
-          allRepos = allRepos.slice(0, LIMIT);
+        if (allRepos.length >= config.LIMIT) {
+          allRepos = allRepos.slice(0, config.LIMIT);
           break;
         }
 

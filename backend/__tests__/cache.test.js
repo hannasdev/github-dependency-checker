@@ -1,5 +1,6 @@
 import { jest } from "@jest/globals";
 import fs from "fs";
+
 jest.mock("fs", () => ({
   promises: {
     readFile: jest.fn(),
@@ -38,21 +39,26 @@ jest.mock("winston", () => ({
   },
 }));
 
-jest.mock("../src/config.js", () => ({
-  CACHE_DIR: "mock-cache-dir",
+jest.mock("../src/errorHandler.js", () => ({
+  handleFileSystemError: jest.fn(),
+  handleParsingError: jest.fn(),
 }));
 
 describe("Cache module", () => {
-  let getCachedContent, setCachedContent;
+  let createCache, mockLogger;
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    const cache = await import("../src/cache.js");
-    getCachedContent = cache.getCachedContent;
-    setCachedContent = cache.setCachedContent;
+    mockLogger = {
+      info: jest.fn(),
+      error: jest.fn(),
+    };
+    const cacheModule = await import("../src/cache.js");
+    createCache = cacheModule.createCache;
   });
 
   test("getCachedContent returns cached content if available", async () => {
+    const cache = createCache(mockLogger);
     const mockCacheContent = {
       content: "cached content",
       etag: "etag123",
@@ -62,7 +68,7 @@ describe("Cache module", () => {
     fs.existsSync.mockReturnValue(true);
     fs.promises.readFile.mockResolvedValue(JSON.stringify(mockCacheContent));
 
-    const result = await getCachedContent("repo1", "file1");
+    const result = await cache.getCachedContent("repo1", "file1");
 
     expect(result).toEqual({
       content: "cached content",
@@ -72,16 +78,18 @@ describe("Cache module", () => {
   });
 
   test("getCachedContent returns null if cache is not available", async () => {
+    const cache = createCache(mockLogger);
     fs.existsSync.mockReturnValue(false);
 
-    const result = await getCachedContent("repo1", "file1");
+    const result = await cache.getCachedContent("repo1", "file1");
 
     expect(result).toBeNull();
     expect(fs.promises.readFile).not.toHaveBeenCalled();
   });
 
   test("setCachedContent writes content to cache", async () => {
-    await setCachedContent("repo1", "file1", "new content", "new-etag");
+    const cache = createCache(mockLogger);
+    await cache.setCachedContent("repo1", "file1", "new content", "new-etag");
 
     expect(fs.promises.writeFile).toHaveBeenCalled();
     const writeFileArg = fs.promises.writeFile.mock.calls[0][1];
@@ -95,6 +103,7 @@ describe("Cache module", () => {
   });
 
   test("getCachedContent returns null for expired cache", async () => {
+    const cache = createCache(mockLogger);
     const expiredCacheContent = {
       content: "expired content",
       etag: "etag123",
@@ -104,7 +113,7 @@ describe("Cache module", () => {
     fs.existsSync.mockReturnValue(true);
     fs.promises.readFile.mockResolvedValue(JSON.stringify(expiredCacheContent));
 
-    const result = await getCachedContent("repo1", "file1");
+    const result = await cache.getCachedContent("repo1", "file1");
 
     expect(result).toBeNull();
   });
